@@ -1,0 +1,19 @@
+# $ roscore
+
+# conda activate py27 jupyter notebook
+
+#source catkin_ws/devel_isolated/setup.bash 
+
+# rosrun rosserial_python serial_node.py /dev/ttyACM0 __name:=node1
+
+# rostopic pub dac1 std_msgs/UInt16 0 --once
+
+# rostopic pub dac2 std_msgs/UInt16 0 --once   // 0-4000
+
+# roslaunch usb_cam usb_cam-test.launch
+# roslaunch apriltag_ros continuous_detection.launch
+# rosrun image_view image_view image:=/cam1/tag_detections_image
+# rosrun image_view image_view image:=/cam2/tag_detections_image
+
+# roslaunch robotiq_2f_gripper_control robotiq_action_servo.launch
+
