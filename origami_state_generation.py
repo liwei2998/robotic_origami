@@ -19,16 +19,23 @@ def ifLineColinear(line1,line2):
     input two lines, return if they are colinear and meet at a vertex
     '''
     "line1 = [[0,0],[1,1]]"
-    if line1[0][0] == line1[1][0] :
-    k1 = (line1[0][1] - line1[1][1])/(line1[0][0] - line1[1][0])
-    k2 = (line2[0][1] - line2[1][1])/(line2[0][0] - line2[1][0])
+    if line1[0][0] == line1[1][0] and line2[0][0] == line2[1][0]:
+        k1 = 0
+        k2 = 0
+    elif line1[0][0] == line1[1][0] and line2[0][0] != line2[1][0]:
+        return 0
+    elif line1[0][0] != line1[1][0] and line2[0][0] == line2[1][0]:
+        return 0
+    else:
+        k1 = (line1[0][1] - line1[1][1])/(line1[0][0] - line1[1][0])
+        k2 = (line2[0][1] - line2[1][1])/(line2[0][0] - line2[1][0])
     is_meet = npi.intersection(line1,line2)
 
     if k1 == k2 and len(is_meet) > 0:
         return 1
     else:
         return 0
-
+# print "is inter",npi.intersection([[-150, 30], [-75, 30]],[[150,30],[75,30]])
 def ifLineSame(line1,line2):
     result=0
     a1=line1[0]
@@ -85,25 +92,6 @@ def findNonRepetiveCreases(creases):
     return crease
 
 
-# def findNonRepetiveCreases(creases):
-#     #serach for non-repetitive creases
-#     #each crease will appear and only appear twice
-#     crease_b = creases
-#     crease_c = []
-#     for i in range(len(creases)):
-#         if creases[i] in crease_c:
-#             crease_b.remove(creases[i])
-#         else:
-#             crease_c.append(creases[i])
-#         # for j in range(i+1,len(creases)):
-#         #     line2 = creases[j]
-#         #     if ifLineSame(line1,line2) == 1:
-#         #         crease.append(line1)
-#         #         break
-#         #     else:
-#         #         continue
-#     return crease_b
-
 def findMininalSetCrease(crease):
     #find linear creases, and combine them
     min_crease = []
@@ -124,8 +112,8 @@ def findMininalSetCrease(crease):
                 colinear_num.append(i)
                 break
             #if the line is not colinear with any other lines
-            elif j == (len(crease)-1) and i not in colinear_num:
-                min_crease.append(line1)
+        if j == (len(crease)-1) and i not in colinear_num:
+            min_crease.append(line1)
     return min_crease
 
 # creases = findAllCreases(stack1,facets1)
@@ -144,6 +132,10 @@ def findFeasibleCrease(crease,stack,polygen):
         for k in range(len(crease)):
             point1 = crease[k][0]
             point2 = crease[k][1]
+            dx = (point1[0] - point2[0])/50
+            dy = (point1[1] - point2[1])/50
+            point1 = [point1[0]+dx,point1[1]+dy]
+            point2 = [point2[0]-dx,point2[1]-dy]
             for j in range(len(stack[i])):
                 facet = stack[i][j]
                 poly = polygen[facet]
@@ -153,6 +145,29 @@ def findFeasibleCrease(crease,stack,polygen):
                 elif j == len(stack[i])-1:
                     feasible_crease.append(crease[k])
     return feasible_crease
+# stack1 = [['1','2','3','4','5','6','7','8']]
+# #counterclock wise
+# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-150,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]
+#             }
+# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
+#            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
+#            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
+#            "5":[[[0,105],[0,-105]],[[75,-105],[75,30]],[[75,30],[0,105]]],
+#            "6":[[[75,30],[75,-105]],[[150,-45],[75,30]]],
+#            "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
+#            "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
+#            }
+
+# def is_crossPoly(polygen,line):
+#     #determine if a line ha scross a polygen
 
 def is_inPoly(polygen,point):
     #determine if a point is in a polygen
@@ -251,13 +266,13 @@ def reversePoint(crease,point):
     x = point[0]
     y = point[1]
     reversed_point = []
-    if a == 0:
+    if a == 0 and b != 0:
         x1 = x
         y1 = -2*c/b - y
-    elif b == 0:
+    if b == 0 and a != 0:
         y1 = y
         x1 = -2*c/a - x
-    elif a !=0 and b!= 0:
+    if a !=0 and b!= 0:
         x1 = -1*(2*a*b*y + (a*a-b*b)*x + 2*a*c) / (a*a + b*b)
         y1 = -1*((b*b-a*a)*y + 2*a*b*x + 2*b*c) / (a*a + b*b)
     reversed_point.append(x1)
@@ -352,12 +367,12 @@ def generateNextLayerStates(state):
     crease = findNonRepetiveCreases(creases)
     print "crease",crease
     min_crease = findMininalSetCrease(crease)
-    # print "min_creases",min_crease
+    print "min_creases",min_crease
     #how to set(min_crease)
     #find all feasible creases
 
     feasible_crease = findFeasibleCrease(min_crease,state["stack"],state["polygen"])
-    # print "feasible crease",feasible_crease
+    print "feasible crease",feasible_crease
     #generate new states for each feasible crease
     for i in range(len(feasible_crease)):
         state_tmp = {}

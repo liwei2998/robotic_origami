@@ -16,7 +16,7 @@ import copy
 #             "3":[[1,-1],[0,0],[-1,-1]],
 #             "4":[[0,0],[-1,-1],[-1,1]]}
 # stack1 = [["1","2","3","4"]]
-stack1 = ['1','2','3','4','5','6','7','8']
+stack1 = [['1','2','3','4','5','6','7','8']]
 #counterclock wise
 polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
             "2":[[-75,30],[-150,30],[-150,-45]],
@@ -82,7 +82,8 @@ def bfs(state_graph, src, tgt_stack):
                 break
 
 
-    path = [node]
+    path = [node]ase [[[0, -105], [0, 105]], [[-46, 151], [29, 76]], [[-150, 30], [-75, 30]], [[-75, -105], [-75, 30]], [[29, 151], [29, 76]]]
+
     while parents[node] is not None:
         path.insert(0, parents[node])
         node = parents[node]
@@ -92,8 +93,8 @@ def bfs(state_graph, src, tgt_stack):
 
 path = bfs(state_graph,"state1",[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']])
 print "path",path
-# stack_step = []
-# for i in range(len(path)):
-#     step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
-#     stack_step.append(step_tmp)
-# print "stack step",stack_step
+stack_step = []
+for i in range(len(path)):
+    step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
+    stack_step.append(step_tmp)
+print "stack step",stack_step
