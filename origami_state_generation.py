@@ -255,11 +255,13 @@ def reverseStack(base,flap,polygen,sign):
                     tmp = 0
                     break
         # flap is totally above the base
-        if len(new_stack)<=(layer-1):
+        print "layer",layer
+        if len(new_stack)<=layer:
             for j in range(len(new_flap)):
                 new_stack.append(new_flap[j])
         # flap can be contained in base
-        elif len(new_stack)>=(layer-1+len(new_flap)):
+        elif len(new_stack)>=(layer+len(new_flap)):
+
             layer_tmp = 0
             for i in range(len(new_stack)):
                 if i >= (layer-1) and layer_tmp<len(new_flap):
@@ -269,9 +271,10 @@ def reverseStack(base,flap,polygen,sign):
                     continue
         # some of flap above the base, and some of flap contained in base
         else:
+
             layer_tmp = 0
             for i in range(len(new_stack)):
-                if i >= (layer-1):
+                if i >= layer:
                     new_stack[i] = new_stack[i] + new_flap[layer_tmp]
                     layer_tmp = layer_tmp+1
                 else:
@@ -298,7 +301,7 @@ def reverseStack(base,flap,polygen,sign):
                     if polygenIntersectionCheck(poly1,poly2)==1:
                         tmp = 2
                         break
-                if tmp == 0 and j == (len(base[i]-1)):
+                if tmp == 0 and j == (len(base[i])-1):
                     layer = layer + 1
                     break
                 if tmp == 2:
@@ -306,17 +309,21 @@ def reverseStack(base,flap,polygen,sign):
             if tmp == 2:
                 break
         # flap is totally below the base
+        print "layer",layer
         if layer==0:
+            # print "-below"
             for j in range(len(flap)):
                 new_stack.insert(0,flap[j])#new_flap reverse insert, equals to flap insert
         # flap can be contained in base
-        elif (layer-len(new_flap)-1)>=0:
+        elif (layer-len(new_flap))>=0:
+            # print "-contain"
             layer_tmp = len(new_flap)-1
-            for i in range(layer-1,(layer-len(new_flap)),-1):
+            for i in range(layer,(layer-len(new_flap)),-1):
                 new_stack[i] = new_stack[i] + new_flap[layer_tmp]
                 layer_tmp = layer_tmp - 1
         # some of flap above the base, and some of flap contained in base
         else:
+            # print "-mix above below"
             layer_tmp = len(new_flap)-1
             for i in range(layer-1,-1,-1):
                 new_stack[i] = new_stack[i] + new_flap[layer_tmp]
@@ -326,8 +333,9 @@ def reverseStack(base,flap,polygen,sign):
                 new_stack.insert(0,new_flap[j])
 
     return new_stack
+# s1+: flap above base
 # stackk = [['3','4','5','6','7','8'],['1','2']]
-# polygennn = {"1":[[0,105],[-75,-45],[0,-45],[0,105]],
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
 #             "2":[[-75,30],[-150,30],[-75,-45]],
 #             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
 #             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
@@ -336,19 +344,65 @@ def reverseStack(base,flap,polygen,sign):
 #             "7":[[75,30],[150,-45],[150,30]],
 #             "8":[[75,30],[150,30],[150,105],[0,105]]}
 # crease_l = [[-75,-105],[-75,30]]
-polygennn = {"1":[[0,105],[-75,-45],[0,-45],[0,105]],
+# s2+: flap is contained in base
+# stackk = [['4','5','6','7','8'],['1'],['2'],['3']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# s3+: some flap above and some flap below tha base
+# stackk = [['7','8'],['3','4','5','6'],['1','2']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[75,-45]],
+#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
+# crease_l = [[75,30],[75,-105]]
+# s1-: flap below base
+# stackk = [['3','4','5','6','7','8'],['1','2']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-75,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# s2-: flap is contained in base
+# stackk = [['3'],['2'],['1'],['4','5','6','7','8']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# s3-: some flap above and some flap below tha base
+stackk = [['1','2'],['3','4','5','6'],['7','8']]
+polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
             "2":[[-75,30],[-75,-45],[0,-45]],
             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
             "5":[[0,105],[0,-105],[75,-105],[75,30]],
             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-            "7":[[75,30],[150,-45],[150,30]],
-            "8":[[75,30],[150,30],[150,105],[0,105]]}
-crease_l = [[0,105],[150,-45]]
-stackk = [['4','5','6','7','8'],['1'],['2'],['3']]
+            "7":[[75,30],[150,-45],[75,-45]],
+            "8":[[75,30],[75,-45],[0,-45],[0,105]]}
+crease_l = [[75,30],[75,-105]]
+
 base,flap = divideStack(crease_l,stackk,polygennn)
 print "base,flap",base,flap
-new_stack = reverseStack(base,flap,polygennn,"+")
+new_stack = reverseStack(base,flap,polygennn,"-")
 print "new_stack",new_stack
 
 def reversePoint(crease,point):
