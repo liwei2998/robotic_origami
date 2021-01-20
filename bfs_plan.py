@@ -53,14 +53,14 @@ def bfs(state_graph, src, tgt_stack):
     # #dynamic generate variable's names, using locals()
     # names = locals()
     a = 1
-    while a<15:
+    while queue:
         a = a+1
         node = queue.popleft()
-        print "node",node
+        # print "node",node
         state_node = state_dict[node]
         # generate children states for this node
         children_states = osg.generateNextLayerStates(state_node)
-        print "children states",children_states
+        # print "children states",children_states
         if len(children_states) != 0:
             for i in range(len(children_states)):
                 #store each children states
@@ -68,15 +68,15 @@ def bfs(state_graph, src, tgt_stack):
                 #add children states to state_graph
                 state_graph.setdefault(node,[]).append("state"+str(k))
                 k += 1
-        print "state graph",state_graph
+        # print "state graph",state_graph
 
         if node in state_graph.keys():
             for neighbor in state_graph[node]:
                 if neighbor not in parents:
                     parents[neighbor] = node
                     queue.append(neighbor)
-                    print "stack_node[stack]",state_node["stack"]
-                    if state_node["stack"] == tgt_stack:
+                    # print "stack_dict[neighbor][stack]",state_dict[neighbor]["stack"]
+                    if state_dict[neighbor]["stack"] == tgt_stack:
                         break
         else:
             if state_node["stack"] == tgt_stack:
@@ -91,9 +91,11 @@ def bfs(state_graph, src, tgt_stack):
     return path
 
 
-# path = bfs(state_graph,"state1",[['1','2','3','4'],['5'],['8'],['7'],['6']])
-path = bfs(state_graph,"state1",[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']])
-
+path = bfs(state_graph,"state1",[['3'],['4'],['1'],['2']])
+# path = bfs(state_graph,"state1",[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']])
+# path = bfs(state_graph,"state1",[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']])
+# print "state_graph",state_graph["state175"]
+# print "state175",state_dict['state175']["stack"]
 print "path",path
 stack_step = []
 for i in range(len(path)):

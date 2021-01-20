@@ -124,57 +124,56 @@ def findMininalSetCrease(crease):
 # print "min_crease",min_crease
 #how to set(min_crease)
 
-def findFeasibleCrease(crease,stack,polygen):
-    # find feasible creases among min_crease
-    # discard the creases that cross any facet
-    feasible_crease=[]
-    for i in range(len(stack)):
-        for k in range(len(crease)):
-            point1 = crease[k][0]
-            point2 = crease[k][1]
-            dx = (point1[0] - point2[0])/50
-            dy = (point1[1] - point2[1])/50
-            point1 = [point1[0]+dx,point1[1]+dy]
-            point2 = [point2[0]-dx,point2[1]-dy]
-            for j in range(len(stack[i])):
-                facet = stack[i][j]
-                poly = polygen[facet]
-                if is_inPoly(poly,point1)==1 or is_inPoly(poly,point2)==1:
-                    break
-                # if this creasse does not cross any facet
-                elif j == len(stack[i])-1:
-                    feasible_crease.append(crease[k])
-    return feasible_crease
-# stack1 = [['1','2','3','4','5','6','7','8']]
-# #counterclock wise
-# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
-#             "2":[[-75,30],[-150,30],[-150,-45]],
-#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]
-#             }
-# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
-#            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
-#            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
-#            "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
-#            "5":[[[0,105],[0,-105]],[[75,-105],[75,30]],[[75,30],[0,105]]],
-#            "6":[[[75,30],[75,-105]],[[150,-45],[75,30]]],
-#            "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
-#            "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
-#            }
-
-# def is_crossPoly(polygen,line):
-#     #determine if a line ha scross a polygen
-
 def is_inPoly(polygen,point):
     #determine if a point is in a polygen
     line = LineString(polygen)
     pointt = Point(point)
     polygen = Polygon(line)
     return polygen.contains(pointt)
+
+def findFeasibleCrease(crease,polygen):
+    # find feasible creases among min_crease
+    # discard the creases that cross any facet
+    feasible_crease=[]
+    for k in range(len(crease)):
+        point1 = crease[k][0]
+        point2 = crease[k][1]
+        dx = (point1[0] - point2[0])/20
+        dy = (point1[1] - point2[1])/20
+        point1 = [point1[0]+dx,point1[1]+dy]
+        point2 = [point2[0]-dx,point2[1]-dy]
+        count = 0
+        for facet in polygen.keys():
+            count = count + 1
+            poly = polygen[facet]
+            if is_inPoly(poly,point1)==1 or is_inPoly(poly,point2)==1:
+                break
+            # if this creasse does not cross any facet
+            elif count == len(polygen):
+                feasible_crease.append(crease[k])
+
+    return feasible_crease
+
+# stack2 = [['3','4','5','6','7','8'],['1','2']]
+# # #counterclock wise
+# polygen1 = {'1': [[0, 105], [0, -45], [-75, -45], [-75, 30]],
+#             '3': [[-150, -45], [-150, -105], [-75, -105], [-75, 30]],
+#             '2': [[-75, 30], [-75, -45], [-150, -45]],
+#             '5': [[0, 105], [0, -105], [75, -105], [75, 30]],
+#             '4': [[-75, 30], [-75, -105], [0, -105], [0, 105]],
+#             '7': [[75, 30], [150, -45], [150, 30]],
+#             '6': [[75, 30], [75, -105], [150, -105], [150, -45]],
+#             '8': [[75, 30], [150, 30], [150, 105], [0, 105]]}
+# facets1 = {'1': [[[-75, -45], [-75, 30]]],
+#            '3': [[[-75, -105], [-75, 30]]],
+#            '2': [[[-75, 30], [-75, -45]]],
+#            '5': [[[0, 105], [0, -105]], [[75, 30], [75, -105]], [[75, 30], [0, 105]]],
+#            '4': [[[-75, 30], [-75, -105]], [[0, 105], [0, -105]]],
+#            '7': [[[75, 30], [150, -45]], [[75, 30], [150, 30]]],
+#            '6': [[[75, 30], [75, -105]], [[150, -45], [75, 30]]],
+#            '8': [[[75, 30], [150, 30]], [[0, 105], [75, 30]]]}
+# min_creases=[[[-75, -105], [-75, -45]], [[0, -105], [0, 105]], [[75, -105], [75, 30]], [[0, 105], [150, -45]], [[150, 30], [75, 30]]]
+# print "feasible crease",findFeasibleCrease(min_creases,polygen1)
 
 def lineToFunction(line):
     "input line[[x1,y1],[x2,y2]], return k,b (ax+by+c=0)"
@@ -184,10 +183,31 @@ def lineToFunction(line):
     c = line[1][0]*line[0][1] - line[0][0]*line[1][1]
     return a,b,c
 
+def reverseLineDirection(line):
+    tmp = line[0]
+    line[0] = line[1]
+    line[1] = tmp
+    return line
+
+def ifReverseLineDirection(polygon,crease,root_facet='3'):
+    #determine if the direction of the crease needs to be reversed
+    #if root_facet at the right of the crease, no need to reverse
+    # if at the left, reverse line's direction to ensure the root_facet is always at base
+    a,b,c = lineToFunction(crease)
+    poly = polygon[root_facet]
+    for i in range(len(poly)):
+        product = a*poly[i][0]+b*poly[i][1]+c
+        if product > 0:
+            return crease
+        elif product < 0:
+            return reverseLineDirection(crease)
+
 def divideStack(crease,stack,polygon):
-    #define base at the right of crease
+    #define base at the right of crease, crease has direction
     base = []
     flap = []
+    crease = ifReverseLineDirection(polygon,crease)
+    # print "crease",crease
     a,b,c = lineToFunction(crease)
     for i in range(len(stack)):
         base_tmp = []
@@ -215,195 +235,22 @@ def polygenIntersectionCheck(poly1,poly2):
     #return 1 if has intersection
     line1 = LineString(poly1)
     line2 = LineString(poly2)
-    polygen1 = Polygon(line1)
-    polygen2 = Polygon(line2)
-    return polygen1.intersects(polygen2)
+    polygon1 = Polygon(line1)
+    polygon2 = Polygon(line2)
+    area = polygon1.intersection(polygon2).area
+    # print "area",area
+    if area >= 1:
+        return 1
+    else:
+        return 0
+# poly1=[[-75, -105],[-75, 30],[0, 105], [0, -105]]
+# poly2=[[-75, 30], [0, 105], [0,-45], [-75,-45]]
+# print "is intersection",polygenIntersectionCheck(poly1,poly2)
 # feasible_crease = findFeasibleCrease(min_crease,stack1,polygen1)
 # print "feasible_crease",feasible_crease
 # base,flap = divideStack(feasible_crease[0],stack1,polygen1,"+")
 # print "base_stack",base
 # print "flap_stack",flap
-
-def reverseStack(base,flap,polygen,sign):
-    '''
-    input base stack and flap stack, return reversed stack
-    '''
-    #sign + is valley, sign - is mountain
-    new_stack = []
-    if sign == "+":
-        #flap above the base
-        #base stack will be remained, add base first
-        for i in range(len(base)):
-            new_stack.append(base[i])
-        #reverse the flap
-        new_flap = flap[::-1]
-        #polygen intersection polygen intersection check
-        layer = 0 #layer is to determine which layer should the flap be in
-        tmp = 0
-        #the layer that the bottom of flap has intersection with the base
-        for i in range(len(base)):
-            for j in range(len(base[i])):
-                facet = base[i][j]
-                poly1 = polygen[facet]
-                for k in range(len(new_flap[0])):
-                    poly2 = polygen[new_flap[0][k]]
-                    if polygenIntersectionCheck(poly1,poly2)==1:
-                        layer = layer + 1
-                        tmp = 1
-                        break
-                if tmp == 1:
-                    tmp = 0
-                    break
-        # flap is totally above the base
-        print "layer",layer
-        if len(new_stack)<=layer:
-            for j in range(len(new_flap)):
-                new_stack.append(new_flap[j])
-        # flap can be contained in base
-        elif len(new_stack)>=(layer+len(new_flap)):
-
-            layer_tmp = 0
-            for i in range(len(new_stack)):
-                if i >= (layer-1) and layer_tmp<len(new_flap):
-                    new_stack[i] = new_stack[i] + new_flap[layer_tmp]
-                    layer_tmp = layer_tmp+1
-                else:
-                    continue
-        # some of flap above the base, and some of flap contained in base
-        else:
-
-            layer_tmp = 0
-            for i in range(len(new_stack)):
-                if i >= layer:
-                    new_stack[i] = new_stack[i] + new_flap[layer_tmp]
-                    layer_tmp = layer_tmp+1
-                else:
-                    continue
-            for j in range(layer_tmp,len(new_flap)):
-                new_stack.append(new_flap[j])
-    elif sign == "-":
-        #flap below the base
-        #base stack will be remained, add base first
-        for i in range(len(base)):
-            new_stack.append(base[i])
-        #reverse the flap
-        new_flap = flap[::-1]
-        #polygen intersection polygen intersection check
-        layer = 0 #layer is to determine which layer should the flap be in
-        tmp = 0
-        #the layer that the bottom of flap has intersection with the base
-        for i in range(len(base)):
-            for j in range(len(base[i])):
-                facet = base[i][j]
-                poly1 = polygen[facet]
-                for k in range(len(new_flap[-1])):
-                    poly2 = polygen[new_flap[-1][k]]
-                    if polygenIntersectionCheck(poly1,poly2)==1:
-                        tmp = 2
-                        break
-                if tmp == 0 and j == (len(base[i])-1):
-                    layer = layer + 1
-                    break
-                if tmp == 2:
-                    break
-            if tmp == 2:
-                break
-        # flap is totally below the base
-        print "layer",layer
-        if layer==0:
-            # print "-below"
-            for j in range(len(flap)):
-                new_stack.insert(0,flap[j])#new_flap reverse insert, equals to flap insert
-        # flap can be contained in base
-        elif (layer-len(new_flap))>=0:
-            # print "-contain"
-            layer_tmp = len(new_flap)-1
-            for i in range(layer,(layer-len(new_flap)),-1):
-                new_stack[i] = new_stack[i] + new_flap[layer_tmp]
-                layer_tmp = layer_tmp - 1
-        # some of flap above the base, and some of flap contained in base
-        else:
-            # print "-mix above below"
-            layer_tmp = len(new_flap)-1
-            for i in range(layer-1,-1,-1):
-                new_stack[i] = new_stack[i] + new_flap[layer_tmp]
-                layer_tmp = layer_tmp - 1
-
-            for j in range(layer_tmp,-1,-1):
-                new_stack.insert(0,new_flap[j])
-
-    return new_stack
-# s1+: flap above base
-# stackk = [['3','4','5','6','7','8'],['1','2']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-150,30],[-75,-45]],
-#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[-75,-105],[-75,30]]
-# s2+: flap is contained in base
-# stackk = [['4','5','6','7','8'],['1'],['2'],['3']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# s3+: some flap above and some flap below tha base
-# stackk = [['7','8'],['3','4','5','6'],['1','2']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[75,-45]],
-#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
-# crease_l = [[75,30],[75,-105]]
-# s1-: flap below base
-# stackk = [['3','4','5','6','7','8'],['1','2']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-150,30],[-75,-45]],
-#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# s2-: flap is contained in base
-# stackk = [['3'],['2'],['1'],['4','5','6','7','8']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# s3-: some flap above and some flap below tha base
-stackk = [['1','2'],['3','4','5','6'],['7','8']]
-polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-            "2":[[-75,30],[-75,-45],[0,-45]],
-            "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-            "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-            "5":[[0,105],[0,-105],[75,-105],[75,30]],
-            "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-            "7":[[75,30],[150,-45],[75,-45]],
-            "8":[[75,30],[75,-45],[0,-45],[0,105]]}
-crease_l = [[75,30],[75,-105]]
-
-base,flap = divideStack(crease_l,stackk,polygennn)
-print "base,flap",base,flap
-new_stack = reverseStack(base,flap,polygennn,"-")
-print "new_stack",new_stack
 
 def reversePoint(crease,point):
     a,b,c = lineToFunction(crease)
@@ -462,6 +309,203 @@ def reversePolygen(flap,crease,polygon):
             new_polygen[facet] = new_poly
     return new_polygen
 
+def reverseStack(base,flap,crease,polygen,sign):
+    '''
+    input base stack and flap stack, return reversed stack
+    '''
+    #sign + is valley, sign - is mountain
+    new_stack = []
+    polygen = reversePolygen(flap,crease,polygen)
+    if sign == "+":
+        #flap above the base
+        #base stack will be remained, add base first
+        for i in range(len(base)):
+            new_stack.append(base[i])
+        #reverse the flap
+        new_flap = flap[::-1]
+
+        #polygen intersection polygen intersection check
+        layer = 0 #layer is to determine which layer should the flap be in
+        tmp = 0
+        #the layer that the bottom of flap has intersection with the base
+        for i in range(len(base)):
+            for j in range(len(base[i])):
+                facet = base[i][j]
+                poly1 = polygen[facet]
+                for k in range(len(new_flap[0])):
+                    poly2 = polygen[new_flap[0][k]]
+                    if polygenIntersectionCheck(poly1,poly2)==1:
+
+                        layer = i+1
+                        tmp = 1
+                        break
+                if tmp == 1:
+                    tmp = 0
+                    break
+        # flap is totally above the base
+        # print "layer",layer
+        if len(new_stack)<=layer:
+            # print "+above"
+            for j in range(len(new_flap)):
+                new_stack.append(new_flap[j])
+        # flap can be contained in base
+        elif len(new_stack)>=(layer+len(new_flap)):
+            # print "+contain"
+            layer_tmp = 0
+            for i in range(layer,len(new_stack)):
+                if layer_tmp<len(new_flap):
+                    new_stack[i] = new_stack[i] + new_flap[layer_tmp]
+                    layer_tmp = layer_tmp+1
+                else:
+                    break
+
+        # some of flap above the base, and some of flap contained in base
+        else:
+            # print "+mix above below"
+            layer_tmp = 0
+            for i in range(len(new_stack)):
+                if i >= layer:
+                    new_stack[i] = new_stack[i] + new_flap[layer_tmp]
+                    layer_tmp = layer_tmp+1
+                else:
+                    continue
+            for j in range(layer_tmp,len(new_flap)):
+                new_stack.append(new_flap[j])
+    elif sign == "-":
+        #flap below the base
+        #base stack will be remained, add base first
+        for i in range(len(base)):
+            new_stack.append(base[i])
+        #reverse the flap
+        new_flap = flap[::-1]
+        #polygen intersection polygen intersection check
+        layer = 0 #layer is to determine which layer should the flap be in
+        tmp = 0
+        #the layer that the bottom of flap has intersection with the base
+        for i in range(len(base)):
+            for j in range(len(base[i])):
+                facet = base[i][j]
+                poly1 = polygen[facet]
+                for k in range(len(new_flap[-1])):
+                    poly2 = polygen[new_flap[-1][k]]
+                    if polygenIntersectionCheck(poly1,poly2)==1:
+                        layer = i
+                        tmp = 2
+                        break
+                if tmp == 2:
+                    break
+            if tmp == 2:
+                break
+        if tmp == 0 and i == (len(base)-1):
+            layer = 1
+        # flap is totally below the base
+        # print "layer",layer
+        if layer==0:
+            # print "-below"
+            for j in range(len(flap)):
+                new_stack.insert(0,flap[j])#new_flap reverse insert, equals to flap insert
+        # flap can be contained in base
+        elif (layer-len(new_flap))>=0:
+            # print "-contain"
+            layer_tmp = len(new_flap)-1
+            for i in range(layer-1,(layer-1-len(new_flap)),-1):
+                new_stack[i] = new_stack[i] + new_flap[layer_tmp]
+                layer_tmp = layer_tmp - 1
+        # some of flap above the base, and some of flap contained in base
+        else:
+            # print "-mix above below"
+            layer_tmp = len(new_flap)-1
+            for i in range(layer-1,-1,-1):
+                new_stack[i] = new_stack[i] + new_flap[layer_tmp]
+                layer_tmp = layer_tmp - 1
+
+            for j in range(layer_tmp,-1,-1):
+                new_stack.insert(0,new_flap[j])
+
+    return new_stack
+
+# s1+: flap above base
+# stackk = [['3','4','5','6','7','8'],['1','2']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-75,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# crease_l = [[-75,-105],[-75,30]]
+# s2+: flap is contained in base
+# stackk = [['4','5','6','7','8'],['1'],['2'],['3']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# s3+: some flap above and some flap below tha base
+# stackk = [['7','8'],['3','4','5','6'],['1','2']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[75,-45]],
+#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
+# crease_l = [[75,30],[75,-105]]
+# s1-: flap below base
+# stackk = [['3','4','5','6','7','8'],['1','2']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-75,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# s2-: flap is contained in base
+# stackk = [['3'],['2'],['1'],['4','5','6','7','8']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]}
+# crease_l = [[0,105],[150,-45]]
+# s3-: some flap above and some flap below tha base
+# stackk = [['1','2'],['3','4','5','6'],['7','8']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[75,-45]],
+#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
+# crease_l = [[75,-105],[75,30]]
+# goal stack test
+# stackk = [['3','6'],['2','7'],['1','8'],['4','5']]
+# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
+#             "2":[[-75,30],[-75,-45],[0,-45]],
+#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[0,-105],[0,-45]],
+#             "7":[[75,30],[75,-45],[0,-45]],
+#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
+# crease_l = [[0,-105],[0,105]]
+# base,flap = divideStack(crease_l,stackk,polygennn)
+# print "base,flap",base,flap
+# new_stack = reverseStack(base,flap,crease_l,polygennn,"+")
+# print "new_stack",new_stack
 # reversed_polygen = reversePolygen(flap,feasible_crease[0],polygen1)
 # print "reversed polygen",reversed_polygen
 # reversed_creases = reverseCrease(flap,feasible_crease[0],facets1)
@@ -490,7 +534,7 @@ def generateNextStateInformation(stack,polygen,facet_crease,crease,sign):
     base,flap = divideStack(crease,stack,polygen)
     print "base, flap",base,flap
     #generate new stack
-    reversed_stack = reverseStack(base,flap,sign)
+    reversed_stack = reverseStack(base,flap,crease,polygen,sign)
     print "reversed stack", reversed_stack
     #generate new polygen
     reversed_polygen = reversePolygen(flap,crease,polygen)
@@ -513,11 +557,11 @@ def generateNextLayerStates(state):
     crease = findNonRepetiveCreases(creases)
     # print "crease",crease
     min_crease = findMininalSetCrease(crease)
-    # print "min_creases",min_crease
+    print "min_creases",min_crease
     #how to set(min_crease)
     #find all feasible creases
 
-    feasible_crease = findFeasibleCrease(min_crease,state["stack"],state["polygen"])
+    feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
     print "feasible crease",feasible_crease
     #generate new states for each feasible crease
     for i in range(len(feasible_crease)):
