@@ -53,7 +53,8 @@ def bfs(state_graph, src, tgt_stack):
     # #dynamic generate variable's names, using locals()
     # names = locals()
     a = 1
-    while queue:
+    while a<15:
+        a = a+1
         node = queue.popleft()
         print "node",node
         state_node = state_dict[node]
@@ -82,8 +83,7 @@ def bfs(state_graph, src, tgt_stack):
                 break
 
 
-    path = [node]ase [[[0, -105], [0, 105]], [[-46, 151], [29, 76]], [[-150, 30], [-75, 30]], [[-75, -105], [-75, 30]], [[29, 151], [29, 76]]]
-
+    path = [node]
     while parents[node] is not None:
         path.insert(0, parents[node])
         node = parents[node]
@@ -91,7 +91,9 @@ def bfs(state_graph, src, tgt_stack):
     return path
 
 
+# path = bfs(state_graph,"state1",[['1','2','3','4'],['5'],['8'],['7'],['6']])
 path = bfs(state_graph,"state1",[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']])
+
 print "path",path
 stack_step = []
 for i in range(len(path)):
