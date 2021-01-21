@@ -532,10 +532,10 @@ def generateNextStateInformation(stack,polygen,facet_crease,crease,sign):
     #search for base and flap according to this crease
     # print "crease",crease
     base,flap = divideStack(crease,stack,polygen)
-    print "base, flap",base,flap
+    # print "base, flap",base,flap
     #generate new stack
     reversed_stack = reverseStack(base,flap,crease,polygen,sign)
-    print "reversed stack", reversed_stack
+    # print "reversed stack", reversed_stack
     #generate new polygen
     reversed_polygen = reversePolygen(flap,crease,polygen)
     # print "reversed polygen",reversed_polygen
@@ -557,12 +557,12 @@ def generateNextLayerStates(state):
     crease = findNonRepetiveCreases(creases)
     # print "crease",crease
     min_crease = findMininalSetCrease(crease)
-    print "min_creases",min_crease
+    # print "min_creases",min_crease
     #how to set(min_crease)
     #find all feasible creases
 
     feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
-    print "feasible crease",feasible_crease
+    # print "feasible crease",feasible_crease
     #generate new states for each feasible crease
     for i in range(len(feasible_crease)):
         state_tmp = {}
