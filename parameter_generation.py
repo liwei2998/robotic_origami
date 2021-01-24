@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import bfs_plan as bfs
 import numpy as np
+import math
+import copy
 
 def findCreaseFuncByPoints(point1,point2):
     if point1[0] == point2[0]:
@@ -225,38 +227,17 @@ def creaseLength(crease):
     length = pointsDistance(point1,point2)
     return length
 
-def centerTagToTag(tag):
-    #return transformation from center tag to assigned tag
-    #this information needs to be given from moveit
-    #here is just an example
-    pos = [-100,100,0]
-    rot_mat = [[1,0,0],
-               [0,1,0],
-               [0,0,1]]
-    return pos,rot_mat
+def calcAngleofAxises(axis1,axis2):
+    cos_theta = axis1*axis2 / (np.linalg.norm(np.array(axis1))*np.linalg.norm(np.array(axis2)))
+    theta = math.acos(cos_theta)
+    theta = theta / np.pi * 180
+    return theta
 
-def transCentertoTag(tag_pos,tag_rot):
-    pos = tag_pos
-    rot_center2centerTag = [[-1,0,0],
-                            [0,-1,0],
-                            [0,0,1]]
-    rot_mat = np.dot(tag_rot,rot_center2centerTag)
-
-    return pos,rot_mat
-
-def pointTransformation(point,pos,rot_mat):
-    point = [point[0],point[1],0]
-    trans_point = np.dot(rot_mat,point)+pos
-    return trans_point
-
-def lineTransformation(line,pos,rot_mat):
-    point1 = line[0]
-    point2 = line[1]
-    trans_point1 = pointTransformation(point1,pos,rot_mat)
-    trans_point2 = pointTransformation(point2,pos,rot_mat)
-    trans_line = [trans_point1,trans_point2]
-    return trans_line
-# def rotWithTag(tag_trans,tag_rot):
+# def findGraspInformation(grasp_move,crease_axis):
+#     grasp_information = []
+#     for i in range(len(grasp_move)):
+#         method = grasp_move[i][1]
+#         theta = calcAngleofAxises(crease_axis,gripper_axis=[1.0,0.0,0.0])
 
 def parameter_generation():
     path, stack_step, state_dict = bfs.findPath()
@@ -293,3 +274,22 @@ manipulation_dict = parameter_generation()
 print "manipulation_dict",manipulation_dict
 # print "step1 grasp info",manipulation_dict["step1"]["grasp"]
 # print "step1 crease info",manipulation_dict["step1"]["crease_axis"],manipulation_dict["step1"]["crease_length"]
+
+def mani_info_temp(manipulation_dict):
+    manipulation_dict_temp = copy.deepcopy(manipulation_dict)
+    for step in manipulation_dict.keys():
+        grasp_info = manipulation_dict[step]["grasp"]
+        for i in range(len(grasp_info)):
+            point = grasp_info[i][0]
+            point = [float(point[0])/1000,float(point[1])/1000]
+            manipulation_dict_temp[step]["grasp"][i][0] = point
+            move_dis = grasp_info[i][2]
+            move_dis = move_dis/1000
+            manipulation_dict_temp[step]["grasp"][i][2] = move_dis
+        cl = manipulation_dict[step]["crease_length"]
+        cl = cl/1000
+        manipulation_dict_temp[step]["crease_length"] = cl
+    return manipulation_dict_temp
+
+manipulation_dict_temp = mani_info_temp(manipulation_dict)
+print "manipulation dict tmp",manipulation_dict_temp
