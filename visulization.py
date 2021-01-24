@@ -102,7 +102,7 @@ def drawMultiFigs(imgs,column,row):
     for i in range(column):
         for j in range(row):
             index = i*column + j + 1
-            print "index",index
+            # print "index",index
             title = "step" + str(index)
             plt.subplot(column,row,index)
             plt.imshow(imgs[index-1])

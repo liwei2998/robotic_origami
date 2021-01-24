@@ -189,7 +189,7 @@ def reverseLineDirection(line):
     line[1] = tmp
     return line
 
-def ifReverseLineDirection(polygon,crease,root_facet='3'):
+def ifReverseLineDirection(polygon,crease,root_facet='4'):
     #determine if the direction of the crease needs to be reversed
     #if root_facet at the right of the crease, no need to reverse
     # if at the left, reverse line's direction to ensure the root_facet is always at base
