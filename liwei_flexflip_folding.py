@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import tf_conversions
+# import tf_conversions
 import numpy as np
 import message_filters
 import sys
@@ -32,7 +32,7 @@ from arc_rotate import *
 
 rospy.init_node('dual_arm_origami', anonymous=True)
 moveit_commander.roscpp_initialize(sys.argv)
-
+rospy.sleep(3)
 listener = tf.TransformListener()
 
 robot = moveit_commander.RobotCommander()
@@ -247,8 +247,8 @@ def descend_to_desktop(robot_arm,gripper_state,margin):
         group = group1
         pinch_tip='pinch_tip_hong'
     elif robot_arm == "robkong":
-    group = group2
-    pinch_tip='pinch_tip_kong'
+        group = group2
+        pinch_tip='pinch_tip_kong'
     else:
         print "robot_arm input error, please input valid robot_arm name"
 
@@ -773,18 +773,21 @@ def init():
 #   scene.add_box(wall_name2,wall_pose2,(2,0.04,2))
 
 
-def transCentertoWorld(transTag2World,rotTag2World,transCenterTag2Tag,rotCenterTag2Tag):
-    #transformation from planning center to world
-    #input[0]:array; input[1]:array, matrix; input[2]:array; input[3]:array, matrix
-    pos,rot = transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag)
-    rotCenter2World = np.dot(rotTag2World,rot)
-    posCenter2World = transTag2World + np.dot(rotTag2World,pos)
-    return posCenter2World,rotCenter2World
+def transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag):
+    #transformation from planning center to assigned tag
+    #input[0]:array, input[1]:array, matrix
+    pos = transCenterTag2Tag
+    rot_center2centerTag = [[0,1,0],
+                          [-1,0,0],
+                          [0,0,1]]
+    rot_mat = np.dot(rotCenterTag2Tag,rot_center2centerTag)
+    # print "rot center to tag",rot_mat
+    return pos,rot_mat
 
 def get_tag_info(referenced_tag):
     ########get transformations
-    listener.waitForTransform(reference_tag, "tag_22", rospy.Time(), rospy.Duration(4.0))
-    (trans1,rot1)=listener.lookupTransform(reference_tag, 'tag_22', rospy.Time(0))
+    listener.waitForTransform(referenced_tag, "tag_22", rospy.Time(), rospy.Duration(4.0))
+    (trans1,rot1)=listener.lookupTransform(referenced_tag, 'tag_22', rospy.Time(0))
     # print "trans1",trans1
     rot_mat1=listener.fromTranslationRotation(trans1, rot1)
     rot_mat1 = rot_mat1[:3,:3]
@@ -813,15 +816,25 @@ def start_robot():
 
     #######parameters
     transLocal2Tag,rotLocal2Tag=get_tag_info(referenced_tag="tag_17")
-    crease_axis,crease_perp_l,method,angle,crease_length,startP2refP=pg.get_parameters(transLocal2Tag,
-                                                                                       rotLocal2Tag,
-                                                                                       "step0")
-    print "crease axis",crease_axis
-    print "crease_perp_l",crease_perp_l
-    print "grasp method",method
-    print "angle",angle
-    print "crease_length",crease_length
-    print "startP2refP",startP2refP
+    parameters=pg.get_parameters(transLocal2Tag,rotLocal2Tag,"step0")
+    if len(parameters)==1:
+        #no need to turn over
+        crease_axis=parameters[0][0]
+        crease_perp_l=parameters[0][1]
+        grasp_method=parameters[0][2]
+        angle=parameters[0][3]
+        crease_length=parameters[0][4]
+        startP2refP=parameters[0][5]
+        print "crease axis",crease_axis
+        print "crease_perp_l",crease_perp_l
+        print "grasp method",method
+        print "angle",angle
+        print "crease_length",crease_length
+        print "startP2refP",startP2refP
+    # elif len(parameters)>1:
+    #     #turn over
+    #     #1: turn over parameters
+
     #### verified step: diagonal flexflip
     # crease_axis= [-0.7071, -0.7071, 0]
     # crease_perp_l=0.19

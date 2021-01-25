@@ -252,9 +252,9 @@ def parameter_generation():
         # print "crease length",crease_length
         # grasp_information = findGraspInformation(grasp_move,crease_axis)
         # print "grasp information",grasp_information
-
+        fold = state_dict[path[i+1]]["fold"]
         step_name = "step"+str(i)
-        info_tmp={"grasp":grasp_move,"crease_axis":crease_axis,"crease_length":crease_length}
+        info_tmp={"grasp":grasp_move,"crease_axis":crease_axis,"crease_length":crease_length,"fold":fold}
         # information.setdefault(step_name,info_tmp)
         # whole_info = [grasp_move,crease_axis,crease_length]
         manipulation_dict.setdefault(step_name,info_tmp)
@@ -281,9 +281,10 @@ def mani_info_temp(manipulation_dict):
         manipulation_dict_temp[step]["crease_length"] = cl
     return manipulation_dict_temp
 
-manipulation_dict_temp = mani_info_temp(manipulation_dict)
-print "manipulation dict tmp",manipulation_dict_temp
 global manipulation_dict_temp
+manipulation_dict_temp = mani_info_temp(manipulation_dict)
+# print "manipulation dict tmp",manipulation_dict_temp
+
 
 #################transformation in real world
 def transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag):
@@ -332,7 +333,7 @@ def calcAngleofAxises(axis1,axis2):
     else:
         return -theta
 
-def findGraspInformation(grasp_move,crease_axis,gripper_axis=[1.0,0.0,0.0]):
+def findGraspAngle(grasp_move,crease_axis,gripper_axis=[1.0,0.0,0.0]):
     grasp_angle=[]
     for i in range(len(grasp_move)):
         method = grasp_move[i][1]
@@ -343,6 +344,11 @@ def findGraspInformation(grasp_move,crease_axis,gripper_axis=[1.0,0.0,0.0]):
             angle = theta - 90
         grasp_angle.append(angle)
     return grasp_angle
+
+def rotatePoint(point,rotation_axis=[1.0,0.0,0.0]):
+    #needs to be improved to be applicable to all rotation axis
+    new_point = [-point[0],point[1],point[2]]
+    return new_point
 
 def get_parameters(trans,rot,step):
     ##########transform parameters
@@ -363,42 +369,39 @@ def get_parameters(trans,rot,step):
     # print "grasp point",grasp_point
     crease_axis = axisTransformation(crease_axis,rot)
     # print "crease axis",crease_axis
-    grasp_angle = findGraspInformation(grasp_move,crease_axis)
-    print "grasp information",grasp_angle
+    grasp_angle = findGraspAngle(grasp_move,crease_axis)
+    print "grasp angle",grasp_angle
     angle = grasp_angle[index]
     print "angle",angle
 
-    return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point
+    if manipulation_dict_temp[step]["fold"] == "valley":
+        # print "no need to turn over"
+        exec_info = []
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point])
+        return exec_info
+
+    elif manipulation_dict_temp[step]["fold"] == "mountain":
+        # print "need to turn over!"
+        # 3 layer action and info
+        exec_info=[]
+        #1st layer: scoop and turn
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point])
+        #2nd layer: valley fold
+        crease_axis = -1*crease_axis
+        if angle>0:
+            angle=angle-180
+        elif angle<=0:
+            angle=angle+180
+        grasp_point=rotatePoint(grasp_point)
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point])
+        #3rd layer: scoop and turn over
+        grasp_point = [0]
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point])
+        return exec_info
 
 
 
 
-###used in executable script
-def get_tag_info(referenced_tag="tag_17"):
-    ########get transformations
-    listener.waitForTransform(reference_tag, "tag_22", rospy.Time(), rospy.Duration(4.0))
-    (trans1,rot1)=listener.lookupTransform(reference_tag, 'tag_22', rospy.Time(0))
-    # print "trans1",trans1
-    rot_mat1=listener.fromTranslationRotation(trans1, rot1)
-    rot_mat1 = rot_mat1[:3,:3]
-    # print "rot1",rot_mat1
-    trans,rot = transCentertoTag(trans1,rot_mat1)
-    # listener.waitForTransform("world", reference_tag, rospy.Time(), rospy.Duration(4.0))
-    # (trans2,rot2) = listener.lookupTransform("world", reference_tag, rospy.Time(0))
-    # # print "trans2",trans2
-    # rot_mat2 =listener.fromTranslationRotation(trans2, rot2)
-    # rot_mat2 = rot_mat2[:3,:3]
-    # # print "rot2",rot_mat2
-    # trans,rot = transCentertoWorld(trans2,rot_mat2,trans1,rot_mat1)
-    # print "trans,rot",trans,rot
-    rospy.sleep(2)
-    return trans,rot
 
-# def transCentertoWorld(transTag2World,rotTag2World,transCenterTag2Tag,rotCenterTag2Tag):
-#     #transformation from planning center to world
-#     #input[0]:array; input[1]:array, matrix; input[2]:array; input[3]:array, matrix
-#     pos,rot = transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag)
-#     rotCenter2World = np.dot(rotTag2World,rot)
-#     posCenter2World = transTag2World + np.dot(rotTag2World,pos)
-#     return posCenter2World,rotCenter2World
-###used in executable script
+
+        return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point

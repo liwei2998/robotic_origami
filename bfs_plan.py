@@ -137,7 +137,7 @@ def bfs(state_graph, src, tgt_stack):
 #fig.5 simple fold
 # path = bfs(state_graph,"state1",[['3'],['4'],['1'],['2']])
 # fig.7 plane
-path = bfs(state_graph,"state1",[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']])
+# path = bfs(state_graph,"state1",[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']])
 #fig.7 cup
 # path = bfs(state_graph,"state1",[['8'],['6'],['3'],['4'],['7'],['2'],['5'],['1']])
 #fig.7 cup_deprecated
@@ -153,8 +153,12 @@ path = bfs(state_graph,"state1",[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']
 
 def visualSteps(state_dict,path):
     img_num = len(path)
-    column = int(img_num/4)+1
-    row = 4
+    row = 3
+    if img_num % row == 0:
+        column = int(img_num/3)
+    else:
+        column = int(img_num/3) + 1
+    # print "column",column
     w = 350 #plane
     h = 320 #plane
     # w = 250 #cup
@@ -180,5 +184,6 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],
     # print "stack step",stack_step
     return path,stack_step,state_dict
 
-path,stack_step,state_dict = findPath()
-visualSteps(state_dict,path)
+# path,stack_step,state_dict = findPath()
+# visualSteps(state_dict,path)
+# print "state dict",state_dict
