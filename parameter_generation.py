@@ -227,18 +227,6 @@ def creaseLength(crease):
     length = pointsDistance(point1,point2)
     return length
 
-def calcAngleofAxises(axis1,axis2):
-    cos_theta = axis1*axis2 / (np.linalg.norm(np.array(axis1))*np.linalg.norm(np.array(axis2)))
-    theta = math.acos(cos_theta)
-    theta = theta / np.pi * 180
-    return theta
-
-# def findGraspInformation(grasp_move,crease_axis):
-#     grasp_information = []
-#     for i in range(len(grasp_move)):
-#         method = grasp_move[i][1]
-#         theta = calcAngleofAxises(crease_axis,gripper_axis=[1.0,0.0,0.0])
-
 def parameter_generation():
     path, stack_step, state_dict = bfs.findPath()
     manipulation_dict = {}
@@ -262,6 +250,8 @@ def parameter_generation():
         # print "crease_axis",crease_axis
         crease_length = creaseLength(crease)
         # print "crease length",crease_length
+        # grasp_information = findGraspInformation(grasp_move,crease_axis)
+        # print "grasp information",grasp_information
 
         step_name = "step"+str(i)
         info_tmp={"grasp":grasp_move,"crease_axis":crease_axis,"crease_length":crease_length}
@@ -271,7 +261,7 @@ def parameter_generation():
     return manipulation_dict
 
 manipulation_dict = parameter_generation()
-print "manipulation_dict",manipulation_dict
+# print "manipulation_dict",manipulation_dict
 # print "step1 grasp info",manipulation_dict["step1"]["grasp"]
 # print "step1 crease info",manipulation_dict["step1"]["crease_axis"],manipulation_dict["step1"]["crease_length"]
 
@@ -293,3 +283,122 @@ def mani_info_temp(manipulation_dict):
 
 manipulation_dict_temp = mani_info_temp(manipulation_dict)
 print "manipulation dict tmp",manipulation_dict_temp
+global manipulation_dict_temp
+
+#################transformation in real world
+def transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag):
+    #transformation from planning center to assigned tag
+    #input[0]:array, input[1]:array, matrix
+    pos = transCenterTag2Tag
+    rot_center2centerTag = [[0,1,0],
+                          [-1,0,0],
+                          [0,0,1]]
+    rot_mat = np.dot(rotCenterTag2Tag,rot_center2centerTag)
+    # print "rot center to tag",rot_mat
+    return pos,rot_mat
+
+def pointTransformation(point,pos,rot_mat):
+    # point = [float(point[0]),float(point[1]),float(0)]
+    # pos = [float(pos[0]),float(pos[1]),float(pos[2])]
+    pointt = [point[0],point[1],0.0]
+    trans_point = np.dot(rot_mat,pointt)+pos
+    return trans_point
+
+def lineTransformation(line,pos,rot_mat):
+    point1 = line[0]
+    point2 = line[1]
+    trans_point1 = pointTransformation(point1,pos,rot_mat)
+    trans_point2 = pointTransformation(point2,pos,rot_mat)
+    trans_line = [trans_point1,trans_point2]
+    return trans_line
+
+def axisTransformation(axis,rot):
+    trans_axis = np.dot(rot,axis)
+    return trans_axis
+
+def calcAngleofAxises(axis1,axis2):
+    #reference is axis2, return angle that axis2 rotate to axis1
+    #clockwise:-, counterclockwise:+
+    axis1 = axis1 / np.linalg.norm(np.array(axis1))
+    axis2 = axis2 / np.linalg.norm(np.array(axis2))
+    #dot product
+    theta = np.rad2deg(np.arccos(np.dot(axis1,axis2)))
+    #cross product
+    # rho = np.rad2deg(np.arcsin(np.cross(axis1,axis2)))
+    rho = np.cross(axis1,axis2)
+    # print "rho",rho
+    if rho[2]<0:
+        return theta
+    else:
+        return -theta
+
+def findGraspInformation(grasp_move,crease_axis,gripper_axis=[1.0,0.0,0.0]):
+    grasp_angle=[]
+    for i in range(len(grasp_move)):
+        method = grasp_move[i][1]
+        theta = calcAngleofAxises(crease_axis,gripper_axis)
+        if method == "flexflip":
+            angle = theta + 90
+        elif method == "scooping":
+            angle = theta - 90
+        grasp_angle.append(angle)
+    return grasp_angle
+
+def get_parameters(trans,rot,step):
+    ##########transform parameters
+    # manipulation_dict = mani_info_temp()
+    # print "manipulation_dict",manipulation_dict
+    grasp_move = manipulation_dict_temp[step]["grasp"]
+    crease_axis = manipulation_dict[step]["crease_axis"]
+    crease_length = manipulation_dict[step]["crease_length"]
+    index = 999
+    for i in range(len(grasp_move)):
+        method = grasp_move[i][1]
+        if method == "scooping":
+            index=i
+            break
+    if index == 999:
+        index = 0
+    grasp_point = pointTransformation(grasp_move[index][0],trans,rot)
+    # print "grasp point",grasp_point
+    crease_axis = axisTransformation(crease_axis,rot)
+    # print "crease axis",crease_axis
+    grasp_angle = findGraspInformation(grasp_move,crease_axis)
+    print "grasp information",grasp_angle
+    angle = grasp_angle[index]
+    print "angle",angle
+
+    return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point
+
+
+
+
+###used in executable script
+def get_tag_info(referenced_tag="tag_17"):
+    ########get transformations
+    listener.waitForTransform(reference_tag, "tag_22", rospy.Time(), rospy.Duration(4.0))
+    (trans1,rot1)=listener.lookupTransform(reference_tag, 'tag_22', rospy.Time(0))
+    # print "trans1",trans1
+    rot_mat1=listener.fromTranslationRotation(trans1, rot1)
+    rot_mat1 = rot_mat1[:3,:3]
+    # print "rot1",rot_mat1
+    trans,rot = transCentertoTag(trans1,rot_mat1)
+    # listener.waitForTransform("world", reference_tag, rospy.Time(), rospy.Duration(4.0))
+    # (trans2,rot2) = listener.lookupTransform("world", reference_tag, rospy.Time(0))
+    # # print "trans2",trans2
+    # rot_mat2 =listener.fromTranslationRotation(trans2, rot2)
+    # rot_mat2 = rot_mat2[:3,:3]
+    # # print "rot2",rot_mat2
+    # trans,rot = transCentertoWorld(trans2,rot_mat2,trans1,rot_mat1)
+    # print "trans,rot",trans,rot
+    rospy.sleep(2)
+    return trans,rot
+
+# def transCentertoWorld(transTag2World,rotTag2World,transCenterTag2Tag,rotCenterTag2Tag):
+#     #transformation from planning center to world
+#     #input[0]:array; input[1]:array, matrix; input[2]:array; input[3]:array, matrix
+#     pos,rot = transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag)
+#     rotCenter2World = np.dot(rotTag2World,rot)
+#     posCenter2World = transTag2World + np.dot(rotTag2World,pos)
+#     return posCenter2World,rotCenter2World
+###used in executable script
