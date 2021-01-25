@@ -827,7 +827,7 @@ def start_robot():
         startP2refP=parameters[0][5]
         print "crease axis",crease_axis
         print "crease_perp_l",crease_perp_l
-        print "grasp method",method
+        print "grasp method",grasp_method
         print "angle",angle
         print "crease_length",crease_length
         print "startP2refP",startP2refP

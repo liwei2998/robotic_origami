@@ -355,8 +355,8 @@ def get_parameters(trans,rot,step):
     # manipulation_dict = mani_info_temp()
     # print "manipulation_dict",manipulation_dict
     grasp_move = manipulation_dict_temp[step]["grasp"]
-    crease_axis = manipulation_dict[step]["crease_axis"]
-    crease_length = manipulation_dict[step]["crease_length"]
+    crease_axis = manipulation_dict_temp[step]["crease_axis"]
+    crease_length = manipulation_dict_temp[step]["crease_length"]
     index = 999
     for i in range(len(grasp_move)):
         method = grasp_move[i][1]
@@ -398,10 +398,3 @@ def get_parameters(trans,rot,step):
         grasp_point = [0]
         exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point])
         return exec_info
-
-
-
-
-
-
-        return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point
