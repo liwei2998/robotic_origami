@@ -96,14 +96,16 @@ def PointLineDistance(line_func,point):
 def findFurthestPointInfo(crease_func,polygon,facets):
     info_tmp = []
     info = []
+    dis_tmp = []
     for facet in facets:
         poly = polygon[facet]
         for i in range(len(poly)):
             #poly[i] is a point
             dis = PointLineDistance(crease_func,poly[i])
             info_tmp.append([dis,poly[i],facet])
+            dis_tmp.append(dis)
     # print "info_tmp",info_tmp,type(info_tmp)
-    dis_tmp = np.array(info_tmp)[:,0]
+    # dis_tmp = np.array(info_tmp)[:,0]
     max_dis = max(dis_tmp)
     # dis_tmp = list(enumerate(dis_tmp))
     indexs = [i for i,x in enumerate(dis_tmp) if x==max_dis]
@@ -170,14 +172,16 @@ def findCreaseExPoints(crease_func,polygon,facets):
         crease_point.append(cp_dict[cp])
 
     dis_points = [] #dis of two points, parent point, child point
+    dis_tmp=[]
     for i in range(len(crease_point)):
         point1 = crease_point[i]
         for j in range(i+1,len(crease_point)):
             point2 = crease_point[j]
             dis = pointsDistance(point1,point2)
             dis_points.append([dis,point1,point2])
-    dis_tmp = np.array(dis_points)[:,0]
-    dis_tmp = dis_tmp.tolist()
+            dis_tmp.append(dis)
+    # dis_tmp = np.array(dis_points)[:,0]
+    # dis_tmp = dis_tmp.tolist()
     index = dis_tmp.index(max(dis_tmp))
     point1 = dis_points[index][1]
     point2 = dis_points[index][2]
@@ -210,6 +214,13 @@ def ifReverseLineDirection(polygon,crease,facets):
         elif product > 0:
             return reverseLineDirection(crease)
 
+def lineToAxis(line):
+    dx = line[1][0]-line[0][0]
+    dy = line[1][1]-line[0][1]
+    axis=[dx,dy,0]
+    axis = np.array(axis)/np.linalg.norm(np.array(axis))
+    return axis
+
 def creasePointstoAxis(crease,facets,polygon):
     #return crease_axis
     #reversed facets always on the left of crease axis
@@ -221,23 +232,24 @@ def creasePointstoAxis(crease,facets,polygon):
     crease_axis = crease_axis.tolist()
     return crease_axis
 
+def findCreasePoint(crease,crease_axis):
+    dx1 = crease[0][0]-crease[1][0]
+    # dx2=-dx1
+    dy1=crease[0][1]-crease[1][1]
+    # dy2=-dy1
+    line1=[dx1,dy1,0]
+    # line2=[dx2,dy2,0]
+    result=line1[0]*crease_axis[0]+line1[1]*crease_axis[1]
+    if result>0:
+        return crease[1]
+    elif result<0:
+        return crease[0]
+
 def creaseLength(crease):
     point1 = crease[0]
     point2 = crease[1]
     length = pointsDistance(point1,point2)
     return length
-
-def calcAngleofAxises(axis1,axis2):
-    cos_theta = axis1*axis2 / (np.linalg.norm(np.array(axis1))*np.linalg.norm(np.array(axis2)))
-    theta = math.acos(cos_theta)
-    theta = theta / np.pi * 180
-    return theta
-
-# def findGraspInformation(grasp_move,crease_axis):
-#     grasp_information = []
-#     for i in range(len(grasp_move)):
-#         method = grasp_move[i][1]
-#         theta = calcAngleofAxises(crease_axis,gripper_axis=[1.0,0.0,0.0])
 
 def parameter_generation():
     path, stack_step, state_dict = bfs.findPath()
@@ -260,18 +272,22 @@ def parameter_generation():
         # print "crease",crease
         crease_axis = creasePointstoAxis(crease,reversed_facets,polygon1)
         # print "crease_axis",crease_axis
+        crease_point = findCreasePoint(crease,crease_axis)
+        # print "crease point",crease_point
         crease_length = creaseLength(crease)
         # print "crease length",crease_length
-
+        # grasp_information = findGraspInformation(grasp_move,crease_axis)
+        # print "grasp information",grasp_information
+        fold = state_dict[path[i+1]]["fold"]
         step_name = "step"+str(i)
-        info_tmp={"grasp":grasp_move,"crease_axis":crease_axis,"crease_length":crease_length}
+        info_tmp={"grasp":grasp_move,"crease_axis":crease_axis,"crease_point":crease_point,"crease_length":crease_length,"fold":fold,"crease":crease}
         # information.setdefault(step_name,info_tmp)
         # whole_info = [grasp_move,crease_axis,crease_length]
         manipulation_dict.setdefault(step_name,info_tmp)
     return manipulation_dict
 
 manipulation_dict = parameter_generation()
-print "manipulation_dict",manipulation_dict
+# print "manipulation_dict",manipulation_dict
 # print "step1 grasp info",manipulation_dict["step1"]["grasp"]
 # print "step1 crease info",manipulation_dict["step1"]["crease_axis"],manipulation_dict["step1"]["crease_length"]
 
@@ -286,10 +302,172 @@ def mani_info_temp(manipulation_dict):
             move_dis = grasp_info[i][2]
             move_dis = move_dis/1000
             manipulation_dict_temp[step]["grasp"][i][2] = move_dis
+        crease_point = manipulation_dict[step]["crease_point"]
+        c_point = [float(crease_point[0])/1000,float(crease_point[1])/1000]
+        manipulation_dict_temp[step]["crease_point"]=c_point
         cl = manipulation_dict[step]["crease_length"]
         cl = cl/1000
         manipulation_dict_temp[step]["crease_length"] = cl
     return manipulation_dict_temp
 
+global manipulation_dict_temp
 manipulation_dict_temp = mani_info_temp(manipulation_dict)
-print "manipulation dict tmp",manipulation_dict_temp
+# print "manipulation dict tmp",manipulation_dict_temp
+
+
+#################transformation in real world
+def transCentertoTag(transCenterTag2Tag,rotCenterTag2Tag):
+    #transformation from planning center to assigned tag
+    #input[0]:array, input[1]:array, matrix
+    pos = transCenterTag2Tag
+    rot_center2centerTag = [[0,1,0],
+                          [-1,0,0],
+                          [0,0,1]]
+    rot_mat = np.dot(rotCenterTag2Tag,rot_center2centerTag)
+    # print "rot center to tag",rot_mat
+    return pos,rot_mat
+
+def pointTransformation(point,pos,rot_mat):
+    # point = [float(point[0]),float(point[1]),float(0)]
+    # pos = [float(pos[0]),float(pos[1]),float(pos[2])]
+    pointt = [point[0],point[1],0.0]
+    trans_point = np.dot(rot_mat,pointt)+pos
+    return trans_point
+
+def lineTransformation(line,pos,rot_mat):
+    point1 = line[0]
+    point2 = line[1]
+    trans_point1 = pointTransformation(point1,pos,rot_mat)
+    trans_point2 = pointTransformation(point2,pos,rot_mat)
+    trans_line = [trans_point1,trans_point2]
+    return trans_line
+
+def axisTransformation(axis,rot):
+    trans_axis = np.dot(rot,axis)
+    return trans_axis
+
+def calcAngleofAxises(axis1,axis2):
+    #reference is axis2, return angle that axis2 rotate to axis1
+    #clockwise:-, counterclockwise:+
+    axis1 = axis1 / np.linalg.norm(np.array(axis1))
+    axis2 = axis2 / np.linalg.norm(np.array(axis2))
+    #dot product
+    theta = np.rad2deg(np.arccos(np.dot(axis1,axis2)))
+    #cross product
+    # rho = np.rad2deg(np.arcsin(np.cross(axis1,axis2)))
+    rho = np.cross(axis1,axis2)
+    # print "rho",rho
+    if rho[2]<0:
+        return theta
+    else:
+        return -theta
+
+def findGraspAngle(grasp_move,crease_axis,gripper_axis=[1.0,0.0,0.0]):
+    grasp_angle=[]
+    for i in range(len(grasp_move)):
+        method = grasp_move[i][1]
+        theta = calcAngleofAxises(crease_axis,gripper_axis)
+        if method == "flexflip":
+            angle = theta + 90
+        elif method == "scooping":
+            angle = theta - 90
+        grasp_angle.append(angle)
+    return grasp_angle
+
+def findMakeCreaseAngle(crease_axis,gripper_axis=[-1.0,0.0,0.0]):
+    theta = calcAngleofAxises(crease_axis,gripper_axis)
+    make_c_angle = theta - 90
+    return make_c_angle
+# def rotatePoint(point,rotation_axis=[1.0,0.0,0.0]):
+#     #needs to be improved to be applicable to all rotation axis
+#     # z_axis = [0,0,1]
+#     # perp_axis=np.cross(rotation_axis,z_axis)
+#
+#     new_point = [-point[0],point[1],point[2]]
+#     return new_point
+
+def reversePoint(point,line_func):
+    a = line_func[0]
+    b = line_func[1]
+    c = line_func[2]
+    x0 = point[0]
+    y0 = point[1]
+    x = ((b*b-a*a)*x0-2*a*b*y0-2*a*c)/(a*a+b*b)
+    y = (-2*a*b*x0+(a*a-b*b)*y0-2*b*c)/(a*a+b*b)
+    new_point=[x,y]
+    return new_point
+
+def reversePoint1(point,crease):
+    a,b,c = lineToFunction(crease)
+
+    x = point[0]
+    y = point[1]
+    reversed_point = []
+    if a == 0 and b != 0:
+        x1 = x
+        y1 = -2*c/b - y
+    if b == 0 and a != 0:
+        y1 = y
+        x1 = -2*c/a - x
+    if a !=0 and b!= 0:
+        x1 = -1*(2*a*b*y + (a*a-b*b)*x + 2*a*c) / (a*a + b*b)
+        y1 = -1*((b*b-a*a)*y + 2*a*b*x + 2*b*c) / (a*a + b*b)
+    reversed_point.append(x1)
+    reversed_point.append(y1)
+    return reversed_point
+
+def get_parameters(trans,rot,step):
+    ##########transform parameters
+    # manipulation_dict = mani_info_temp()
+    # print "manipulation_dict",manipulation_dict
+    grasp_move = manipulation_dict_temp[step]["grasp"]
+    crease_axis = manipulation_dict_temp[step]["crease_axis"]
+    crease_length = manipulation_dict_temp[step]["crease_length"]
+    crease_point = manipulation_dict_temp[step]["crease_point"]
+    crease = manipulation_dict_temp[step]["crease"]
+    crease_func = lineToFunction(crease)
+    index = 999
+    for i in range(len(grasp_move)):
+        method = grasp_move[i][1]
+        if method == "scooping":
+            index=i
+            break
+    if index == 999:
+        index = 0
+    grasp_point = pointTransformation(grasp_move[index][0],trans,rot)
+    # print "grasp point",grasp_point
+    crease_axis = axisTransformation(crease_axis,rot)
+    # print "crease axis",crease_axis
+    crease_point = pointTransformation(crease_point,trans,rot)
+    # print "crease point",crease_point
+    grasp_angle = findGraspAngle(grasp_move,crease_axis)
+    # print "grasp angle",grasp_angle
+    angle = grasp_angle[index]
+    # print "angle",angle
+    make_c_angle = findMakeCreaseAngle(crease_axis)
+    # print "make crease angle",make_c_angle
+
+    if manipulation_dict_temp[step]["fold"] == "valley":
+        # print "no need to turn over"
+        exec_info = []
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
+        return exec_info
+
+    elif manipulation_dict_temp[step]["fold"] == "mountain":
+        # print "need to turn over!"
+        # 3 layer action and info
+        exec_info=[]
+        #1st layer: scoop and turn
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
+        #2nd layer: valley fold
+        crease_axis = -1*crease_axis
+        if angle>0:
+            angle=angle-180
+        elif angle<=0:
+            angle=angle+180
+        grasp_point=reversePoint(grasp_point,line_func=[1,0,0])
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
+        #3rd layer: scoop and turn over
+        grasp_point=reversePoint(grasp_point,crease_func)
+        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
+        return exec_info
