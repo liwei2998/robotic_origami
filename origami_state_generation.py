@@ -572,6 +572,7 @@ def generateNextLayerStates(state):
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
+        state_tmp["fold"] = "valley"
 
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
@@ -583,7 +584,7 @@ def generateNextLayerStates(state):
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
-
+        state_tmp["fold"] = "mountain"
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
     return new_states
