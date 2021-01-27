@@ -371,6 +371,10 @@ def findGraspAngle(grasp_move,crease_axis,gripper_axis=[1.0,0.0,0.0]):
             angle = theta + 90
         elif method == "scooping":
             angle = theta - 90
+        if angle>180:
+            angle=angle-360
+        elif angle<-180:
+            angle=angle+360
         grasp_angle.append(angle)
     return grasp_angle
 
@@ -416,7 +420,33 @@ def reversePoint1(point,crease):
     reversed_point.append(y1)
     return reversed_point
 
-def get_parameters(trans,rot,step):
+def reverseCrease(crease,crease_axis,line_func):
+    a = line_func[0]
+    b = line_func[1]
+    c = line_func[2]
+    x0 = crease[0][0]
+    y0 = crease[0][1]
+    x = ((b*b-a*a)*x0-2*a*b*y0-2*a*c)/(a*a+b*b)
+    y = (-2*a*b*x0+(a*a-b*b)*y0-2*b*c)/(a*a+b*b)
+    new_point0 = [x,y]
+    x1 = crease[1][0]
+    y1 = crease[1][1]
+    x = ((b*b-a*a)*x1-2*a*b*y1-2*a*c)/(a*a+b*b)
+    y = (-2*a*b*x1+(a*a-b*b)*y1-2*b*c)/(a*a+b*b)
+    new_point1 = [x,y]
+    dx = x0 - x1
+    dy = y0 - y1
+    result = dx*crease_axis[0]+dy*crease_axis[1]
+    if result>0:
+        new_crease = [new_point0,new_point1]
+        new_axis = lineToAxis(new_crease)
+        return new_axis
+    elif result<0:
+        new_crease = [new_point1,new_point0]
+        new_axis = lineToAxis(new_crease)
+        return new_axis
+
+def get_parameters(trans,rot,step,turn_over_step=0):
     ##########transform parameters
     # manipulation_dict = mani_info_temp()
     # print "manipulation_dict",manipulation_dict
@@ -425,7 +455,7 @@ def get_parameters(trans,rot,step):
     crease_length = manipulation_dict_temp[step]["crease_length"]
     crease_point = manipulation_dict_temp[step]["crease_point"]
     crease = manipulation_dict_temp[step]["crease"]
-    crease_func = lineToFunction(crease)
+    # crease_func = lineToFunction(crease)
     index = 999
     for i in range(len(grasp_move)):
         method = grasp_move[i][1]
@@ -449,25 +479,36 @@ def get_parameters(trans,rot,step):
 
     if manipulation_dict_temp[step]["fold"] == "valley":
         # print "no need to turn over"
-        exec_info = []
-        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
-        return exec_info
+        return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle
 
     elif manipulation_dict_temp[step]["fold"] == "mountain":
         # print "need to turn over!"
         # 3 layer action and info
-        exec_info=[]
         #1st layer: scoop and turn
-        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
+        if turn_over_step==0:
+            #only need grasp_point, angle information
+            return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle
         #2nd layer: valley fold
-        crease_axis = -1*crease_axis
-        if angle>0:
-            angle=angle-180
-        elif angle<=0:
-            angle=angle+180
-        grasp_point=reversePoint(grasp_point,line_func=[1,0,0])
-        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
+        elif turn_over_step==1:
+            crease_axis = manipulation_dict_temp[step]["crease_axis"]
+            crease = manipulation_dict_temp[step]["crease"]
+            crease_axis = reverseCrease(crease,crease_axis,line_func=[1,0,0])
+            crease_axis = lineTransformation(crease_axis,rot)
+            grasp_point = reversePoint(grasp_move[index][0],line_func=[1,0,0])
+            grasp_point = pointTransformation(grasp_point,trans,rot)
+            grasp_angle = findGraspAngle(grasp_move,crease_axis)
+            angle = grasp_angle[index]
+            make_c_angle = findMakeCreaseAngle(crease_axis)
+            crease_point = manipulation_dict_temp[step]["crease_point"]
+            crease_point = reversePoint(crease_point,line_func=[1,0,0])
+            crease_point = pointTransformation(crease_point,trans,rot)
+            return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle
         #3rd layer: scoop and turn over
-        grasp_point=reversePoint(grasp_point,crease_func)
-        exec_info.append([crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle])
-        return exec_info
+        elif turn_over_step==2:
+            #only need crease_point, make_c_angle information
+            crease_axis = manipulation_dict_temp[step]["crease_axis"]
+            crease = manipulation_dict_temp[step]["crease"]
+            crease_axis = reverseCrease(crease,crease_axis,line_func=[1,0,0])
+            crease_axis = lineTransformation(crease_axis,rot)
+            make_c_angle = findMakeCreaseAngle(crease_axis,gripper_axis=[1.0,0.0,0.0])
+            return crease_axis,grasp_move[index][2],grasp_move[index][1],angle,crease_length,grasp_point,crease_point,make_c_angle
