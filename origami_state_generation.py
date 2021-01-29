@@ -665,11 +665,11 @@ def findCreaseSets(crease,stack,polygon,height,facet_crease):
 
 def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='4'):
     #input a crease set, return feasible flaps
-    flap_tmp = []
     flaps = []
     count = 1
     init_h = height
     for i in range(len(crease_set)):
+        flap_tmp = []
         crease = crease_set[i]
         crease = ifReverseLineDirection(polygon,crease,root_facet)
         a,b,c = lineToFunction(crease)
@@ -683,6 +683,8 @@ def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='4'):
                     break
         flaps.append(flap_tmp)
         if count == len(crease_set):
+            if init_h > 0:
+                flaps = flaps[::-1]
             return flaps
         if init_h > 0:
             count = count + 1
@@ -704,6 +706,31 @@ print "crease set",crease_sets
 flaps = findFlapsbyCreaseSet(crease_sets[1],stack1,2,polygen1)
 print "flaps",flaps
 
+
+def findLayerofFacet(facet,stack):
+    for i in range(len(stack)):
+        facets = stack[i]
+        if facet in facets:
+            return i
+
+def findLayersofFacets(facets,stack):
+    facet_layer = []
+    for i in range(len(facets)):
+        for j in range(len(facets[i])):
+            facet = facets[i][j]
+            layer = findLayerofFacet(facet,stack)
+            facet_layer.append(layer)
+    facet_layer = set(facet_layer)
+    facet_layer = list(facet_layer)
+    return facet_layer
+
+def findOtherFacetsinLayer(facets,layer,stack):
+    facetss = stack[layer]
+    facets_tmp = np.array(facets)
+    facets_tmp = facets_tmp.flatten()
+    other_facets = npi.difference(facetss,facets_tmp)
+    return other_facets
+
 def ifEdgeReverse(flap):
     #determine the set of edge that need to be reversed
     flap_facets = (np.array(flap)).flatten()
@@ -712,14 +739,16 @@ def ifEdgeReverse(flap):
 
 def reverseGraphEdge(crease,reverse_edge_facet,graph_edge):
     reversed_edge = copy.deepcopy(graph_edge)
-    for facet in reverse_edge_facet:
-        edges = graph_edge[facet]
-        edge_tmp = []
-        for i in range(len(edges)):
-            edge = edges[i]
-            edge = reverseLine(crease,edge)
-            edge_tmp.append(edge)
-        reversed_edge[facet] = edge_tmp
+    for i in range(len(reverse_edge_facet)):
+        for j in range(len(reverse_edge_facet[i])):
+            facet = reverse_edge_facet[i][j]
+            edges = graph_edge[facet]
+            edge_tmp = []
+            for i in range(len(edges)):
+                edge = edges[i]
+                edge = reverseLine(crease,edge)
+                edge_tmp.append(edge)
+            reversed_edge[facet] = edge_tmp
     return reversed_edge
 
 def newStateCrease(crease,facet_crease):
@@ -752,26 +781,6 @@ def ifCreaseinFacet(crease,facet_crease):
             continue
     return c_facet
 
-def findLayerofFacet(facet,stack):
-    for i in range(len(stack)):
-        facets = stack[i]
-        if facet in facets:
-            return i
-
-def findLayersofFacets(facets,stack):
-    facet_layer = []
-    for facet in facets:
-        layer = findLayerofFacet(facet,stack)
-        facet_layer.append(layer)
-    facet_layer = set(facet_layer)
-    facet_layer = list(facet_layer)
-    return facet_layer
-
-def findOtherFacetsinLayer(facets,layer,stack):
-    facetss = stack[layer]
-    other_facets = npi.difference(facetss,facets)
-    return other_facets
-
 # facet_layer = findLayersofFacets(flap_facets,stack1)
 # print "facet layers",facet_layer
 # other_facets = findOtherFacetsinLayer(flap_facets,facet_layer[0],stack1)
@@ -782,60 +791,65 @@ def newStateEdge(reversed_edge,crease_facet,flap_facets,stack,facet_crease):
     new_edges = {}
     layers = findLayersofFacets(flap_facets,stack)
     tmp = 999
-    for facet in flap_facets:
-        new_edge = crease_facet[facet]
-        new_edge = copy.deepcopy(new_edge)
-        new_reversed_edge[facet].append(new_edge)
-        new_edges.setdefault(facet,new_edge)
-        for i in layers:
-            other_facets = findOtherFacetsinLayer(flap_facets,i,stack)
-            for j in other_facets:
-                creaseee = facet_crease[j]
-                for k in creaseee:
-                    if ifLineSame(new_edge,k) == 1:
-                        new_reversed_edge[j].append(new_edge)
-                        new_edges.setdefault(j,new_edge)
-                        tmp = 888
+    for m in range(len(flap_facets)):
+        for n in range(len(flap_facets[m])):
+            facet = flap_facets[m][n]
+            new_edge = crease_facet[facet]
+            new_edge = copy.deepcopy(new_edge)
+            new_reversed_edge[facet].append(new_edge)
+            new_edges.setdefault(facet,new_edge)
+            for i in layers:
+                other_facets = findOtherFacetsinLayer(flap_facets,i,stack)
+                for j in other_facets:
+                    creaseee = facet_crease[j]
+                    for k in creaseee:
+                        if ifLineSame(new_edge,k) == 1:
+                            new_reversed_edge[j].append(new_edge)
+                            new_edges.setdefault(j,new_edge)
+                            tmp = 888
+                            break
+                    if tmp == 888:
                         break
                 if tmp == 888:
                     break
             if tmp == 888:
-                break
-        if tmp == 888:
-            tmp = 999
-            continue
+                tmp = 999
+                continue
     return new_reversed_edge,new_edges
 
+def findCreaseEdge(new_edges,crease_edges):
+    crease_edge = copy.deepcopy(crease_edges)
+    for facet in new_edges.keys():
+        crease_edge.setdefault(facet,[])
+        crease_edge[facet].append(new_edges[facet])
+    return crease_edge
 
 # flap = [['7','8']]
-# flap_facets = ifEdgeReverse(flap)
+# flaps = ifEdgeReverse(flap)
 # creaseee = [[0, 105], [-150, -45]]
-# reversed_edge = reverseGraphEdge(creaseee,flap_facets,graph_edge)
-# print "reversed edge",reversed_edge
-# crease_facet = ifCreaseinFacet(creaseee,facets1)
-# print "crease facet",crease_facet
-# new_reversed_edge,new_edges = newStateEdge(reversed_edge,crease_facet,flap_facets,stack1,facets1)
-# print "new state edges",new_reversed_edge
-# print "new edges",new_edges
+reversed_edge = reverseGraphEdge(reflect_creases["max"][0],flaps,graph_edge)
+print "reversed edge",reversed_edge
+crease_facet = ifCreaseinFacet(reflect_creases["max"][0],facets1)
+print "crease facet",crease_facet
+new_reversed_edge,new_edges = newStateEdge(reversed_edge,crease_facet,flaps,stack1,facets1)
+print "new state edges",new_reversed_edge
+print "new edges",new_edges
+crease_edge = {}
+crease_edge = findCreaseEdge(new_edges,crease_edge)
+print "crease edge",crease_edge
 
 def findFacetwithSameEdge(crease_edge,stack,edge,facet):
     #return facet that shares the same edge
     facets = []
-    layer = findLayerofFacet(facet,stack)
-    if layer % 2 == 0:
-        layer_index = layer + 1
-    else:
-        layer_index = layer - 1
+    print "edge",edge
     for i in crease_edge.keys():
         edges = crease_edge[i]
         for j in edges:
+            print "crease edgeee",j
             if (j==edge).all() and i != facet:
-                l_index = findLayerofFacet(i,stack)
-                facets.append([l_index,i])
+                facets.append(i)
                 break
-    facets_tmp = facets[:,0]
-    index = facets_tmp.index(layer_index)
-    return facets[index][1]
+    return facets
 
 def ifHasCreaseEdge(facet,crease_edge,graph_edge):
     #return if a facet has crease_edges
@@ -845,12 +859,36 @@ def ifHasCreaseEdge(facet,crease_edge,graph_edge):
     else:
         return 0
 
-# def findFeasibleCreaseSet(crease_set,crease_edge,facet):
-#     #delete crease sets that will tear any crease
-#     # if the facet has crease_edge, then it will be folded with the facet
-#     # that shares the same crease edge
-#     feasible_crease_set = copy.deepcopy(crease_set)
-#     c_edges = crease_edge[facet]
+def ifFlapsFeasible(flaps,crease,crease_edge,stack):
+    #return if the flap facets are feasible
+    # facets in flaps are feasible when a) it does not have crease_edge
+    # or b) two facets share the same crease_edge
+    # return 1 if yes
+    flap_tmp = np.array(flaps)
+    flap_tmp = flap_tmp.flatten()
+    print "flap_tmp",flap_tmp
+    for i in range(len(flaps)):
+        for j in range(len(flaps[i])):
+            facet = flaps[i][j]
+            tmp = []
+            tmp = npi.difference(flap_tmp,[facet])
+            print "tmp",tmp
+            if facet not in crease_edge.keys():
+                continue
+            else:
+                edges = crease_edge[facet]
+                for k in edges:
+                    same_edge_facets = findFacetwithSameEdge(crease_edge,stack,k,facet)
+                    is_in = npi.intersection(same_edge_facets,tmp)
+                    is_in = len(is_in)
+                    if is_in > 0:
+                        continue
+                    else:
+                        return 0
+    return 1
+
+print "is flaps feasible?",ifFlapsFeasible(flaps,reflect_creases["max"][0],crease_edge,stack1)
+
 
 def divideReflectStack(reflect_crease,height,stack,polygon):
     #specially for reflection fold, return base, flap and sign(mountain or valley)
