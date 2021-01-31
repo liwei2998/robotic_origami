@@ -2,17 +2,38 @@
 import numpy_indexed as npi
 from shapely.geometry import *
 import copy
-#clockwise?
-facets1 = {"1":[[[1,1],[0,0]],[[0,0],[-1,1]]],
-          "2":[[[1,-1],[0,0]],[[0,0],[1,1]]],
-          "3":[[[1,-1],[0,0]],[[0,0],[-1,-1]]],
-          "4":[[[-1,-1],[0,0]],[[0,0],[-1,1]]]}
-
-polygen1 = {"1":[[1,1],[0,0],[-1,1]],
-            "2":[[1,1],[1,-1],[0,0]],
-            "3":[[1,-1],[0,0],[-1,-1]],
-            "4":[[0,0],[-1,-1],[-1,1]]}
-stack1 = [["1","2","3","4"]]
+import numpy as np
+# ##############plane
+# stack1 = [['1','2','3','4','5','6','7','8']]
+# #counterclock wise
+# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-150,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]
+#             }
+# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
+#            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
+#            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
+#            "5":[[[0,105],[0,-105]],[[75,-105],[75,30]],[[75,30],[0,105]]],
+#            "6":[[[75,30],[75,-105]],[[150,-45],[75,30]]],
+#            "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
+#            "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
+#            }
+#
+# state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
+# graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
+#               "2":[[[-150,30],[-150,-45]]],
+#               "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
+#               "4":[[[-75,-105],[0,-105]]],
+#               "5":[[[0,-105],[75,-105]]],
+#               "6":[[[75,-105],[150,-105]],[[150,-105],[150,-45]]],
+#               "7":[[[150,-45],[150,30]]],
+#               "8":[[[150,30],[150,105]],[[150,105],[0,105]]]}
 
 def ifLineColinear(line1,line2):
     '''
@@ -27,15 +48,14 @@ def ifLineColinear(line1,line2):
     elif line1[0][0] != line1[1][0] and line2[0][0] == line2[1][0]:
         return 0
     else:
-        k1 = (line1[0][1] - line1[1][1])/(line1[0][0] - line1[1][0])
-        k2 = (line2[0][1] - line2[1][1])/(line2[0][0] - line2[1][0])
+        k1 = (float(line1[0][1]) - float(line1[1][1]))/(float(line1[0][0]) - float(line1[1][0]))
+        k2 = (float(line2[0][1]) - float(line2[1][1]))/(float(line2[0][0]) - float(line2[1][0]))
     is_meet = npi.intersection(line1,line2)
-
     if k1 == k2 and len(is_meet) > 0:
         return 1
     else:
         return 0
-# print "is inter",npi.intersection([[-150, 30], [-75, 30]],[[150,30],[75,30]])
+
 def ifLineSame(line1,line2):
     result=0
     a1=line1[0]
@@ -91,7 +111,6 @@ def findNonRepetiveCreases(creases):
                 continue
     return crease
 
-
 def findMininalSetCrease(crease):
     #find linear creases, and combine them
     min_crease = []
@@ -116,6 +135,32 @@ def findMininalSetCrease(crease):
             min_crease.append(line1)
     return min_crease
 
+# def findMininalSetCrease1(crease):
+#     #find linear creases, and combine them
+#     min_crease = []
+#     lin_crease = []
+#     colinear_num = []
+#     if len(crease) == 1:
+#         min_crease = crease
+#         return min_crease
+#     for i in range(len(crease)):
+#         line1 = crease[i]
+#         for j in range(i+1,len(crease)):
+#             line2 = crease[j]
+#             if ifLineSame(line1,line2)==1:
+#                 continue
+#             #combine linear creases
+#
+#             if ifLineColinear(line1,line2)==1:
+#                 min_crease.append(CombineLinearLines(line1,line2))
+#                 colinear_num.append(j)
+#                 colinear_num.append(i)
+#                 break
+#             #if the line is not colinear with any other lines
+#         if j == (len(crease)-1) and i not in colinear_num:
+#             min_crease.append(line1)
+#     return min_crease
+
 # creases = findAllCreases(stack1,facets1)
 # print "crease",creases
 # crease = findNonRepetiveCreases(creases)
@@ -130,6 +175,19 @@ def is_inPoly(polygen,point):
     pointt = Point(point)
     polygen = Polygon(line)
     return polygen.contains(pointt)
+
+def ifLineCrossPolygon(line,polygon):
+    #return if a line cross a polygon
+    #return 1 if cross
+    point1 = line[0]
+    point2 = line[1]
+    dx = (float(point1[0]) - float(point2[0]))/20
+    dy = (float(point1[1]) - float(point2[1]))/20
+    point1 = [point1[0]+dx,point1[1]+dy]
+    point2 = [point2[0]-dx,point2[1]-dy]
+    if is_inPoly(polygon,point1)==1 or is_inPoly(polygon,point2)==1:
+        return 1
+    return 0
 
 def findFeasibleCrease(crease,polygen):
     # find feasible creases among min_crease
@@ -153,27 +211,6 @@ def findFeasibleCrease(crease,polygen):
                 feasible_crease.append(crease[k])
 
     return feasible_crease
-
-# stack2 = [['3','4','5','6','7','8'],['1','2']]
-# # #counterclock wise
-# polygen1 = {'1': [[0, 105], [0, -45], [-75, -45], [-75, 30]],
-#             '3': [[-150, -45], [-150, -105], [-75, -105], [-75, 30]],
-#             '2': [[-75, 30], [-75, -45], [-150, -45]],
-#             '5': [[0, 105], [0, -105], [75, -105], [75, 30]],
-#             '4': [[-75, 30], [-75, -105], [0, -105], [0, 105]],
-#             '7': [[75, 30], [150, -45], [150, 30]],
-#             '6': [[75, 30], [75, -105], [150, -105], [150, -45]],
-#             '8': [[75, 30], [150, 30], [150, 105], [0, 105]]}
-# facets1 = {'1': [[[-75, -45], [-75, 30]]],
-#            '3': [[[-75, -105], [-75, 30]]],
-#            '2': [[[-75, 30], [-75, -45]]],
-#            '5': [[[0, 105], [0, -105]], [[75, 30], [75, -105]], [[75, 30], [0, 105]]],
-#            '4': [[[-75, 30], [-75, -105]], [[0, 105], [0, -105]]],
-#            '7': [[[75, 30], [150, -45]], [[75, 30], [150, 30]]],
-#            '6': [[[75, 30], [75, -105]], [[150, -45], [75, 30]]],
-#            '8': [[[75, 30], [150, 30]], [[0, 105], [75, 30]]]}
-# min_creases=[[[-75, -105], [-75, -45]], [[0, -105], [0, 105]], [[75, -105], [75, 30]], [[0, 105], [150, -45]], [[150, 30], [75, 30]]]
-# print "feasible crease",findFeasibleCrease(min_creases,polygen1)
 
 def lineToFunction(line):
     "input line[[x1,y1],[x2,y2]], return k,b (ax+by+c=0)"
@@ -424,92 +461,24 @@ def reverseStack(base,flap,crease,polygen,sign):
 
     return new_stack
 
-# s1+: flap above base
-# stackk = [['3','4','5','6','7','8'],['1','2']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-150,30],[-75,-45]],
-#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# crease_l = [[-75,-105],[-75,30]]
-# s2+: flap is contained in base
-# stackk = [['4','5','6','7','8'],['1'],['2'],['3']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# s3+: some flap above and some flap below tha base
-# stackk = [['7','8'],['3','4','5','6'],['1','2']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[75,-45]],
-#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
-# crease_l = [[75,30],[75,-105]]
-# s1-: flap below base
-# stackk = [['3','4','5','6','7','8'],['1','2']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-150,30],[-75,-45]],
-#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# s2-: flap is contained in base
-# stackk = [['3'],['2'],['1'],['4','5','6','7','8']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[150,30]],
-#             "8":[[75,30],[150,30],[150,105],[0,105]]}
-# crease_l = [[0,105],[150,-45]]
-# s3-: some flap above and some flap below tha base
-# stackk = [['1','2'],['3','4','5','6'],['7','8']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-#             "7":[[75,30],[150,-45],[75,-45]],
-#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
-# crease_l = [[75,-105],[75,30]]
-# goal stack test
-# stackk = [['3','6'],['2','7'],['1','8'],['4','5']]
-# polygennn = {"1":[[0,105],[0,-45],[-75,-45],[-75,30]],
-#             "2":[[-75,30],[-75,-45],[0,-45]],
-#             "3":[[0,-45],[0,-105],[-75,-105],[-75,30]],
-#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
-#             "6":[[75,30],[75,-105],[0,-105],[0,-45]],
-#             "7":[[75,30],[75,-45],[0,-45]],
-#             "8":[[75,30],[75,-45],[0,-45],[0,105]]}
-# crease_l = [[0,-105],[0,105]]
-# base,flap = divideStack(crease_l,stackk,polygennn)
-# print "base,flap",base,flap
-# new_stack = reverseStack(base,flap,crease_l,polygennn,"+")
-# print "new_stack",new_stack
-# reversed_polygen = reversePolygen(flap,feasible_crease[0],polygen1)
-# print "reversed polygen",reversed_polygen
-# reversed_creases = reverseCrease(flap,feasible_crease[0],facets1)
-# print "reversed crease",reversed_creases
+creases = findAllCreases(stack1,facets1)
+# print "crease",creases
+crease = findNonRepetiveCreases(creases)
+# print "crease",crease
+min_crease = findMininalSetCrease(crease)
+# print "min_crease",min_crease
+reflect_creases = findReflectionCrease(stack1,facets1,polygen1)
+print "reflect creases",reflect_creases
+crease_sets = findCreaseSets(reflect_creases["max"][0],stack1,polygen1,2,facets1)
+print "crease set",crease_sets
+flaps = findFlapsbyCreaseSet(crease_sets[1],stack1,2,polygen1)
+print "flaps",flaps
+
+def ifEdgeReverse(flap):
+    #determine the set of edge that need to be reversed
+    flap_facets = (np.array(flap)).flatten()
+    flap_facets = flap_facets.tolist()
+    return flap_facets
 
 def newStateCrease(crease,facet_crease):
     #delete folded crease in new state
@@ -523,6 +492,17 @@ def newStateCrease(crease,facet_crease):
                 del facet_crease[facet][i]
 
     return facet_crease
+
+# facet_layer = findLayersofFacets(flap_facets,stack1)
+# print "facet layers",facet_layer
+# other_facets = findOtherFacetsinLayer(flap_facets,facet_layer[0],stack1)
+# print "other facets",other_facets
+
+
+
+# flap = [['7','8']]
+# flaps = ifEdgeReverse(flap)
+# creaseee = [[0, 105], [-150, -45]]
 
 def generateNextStateInformation(stack,polygen,facet_crease,crease,sign):
     '''
@@ -572,6 +552,7 @@ def generateNextLayerStates(state):
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
+        state_tmp["fold"] = "valley"
 
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
@@ -583,32 +564,10 @@ def generateNextLayerStates(state):
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
-
+        state_tmp["fold"] = "mountain"
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
     return new_states
-stack1 = [['1','2','3','4','5','6','7','8']]
-#counterclock wise
-polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
-            "2":[[-75,30],[-150,30],[-150,-45]],
-            "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-            "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-            "5":[[0,105],[0,-105],[75,-105],[75,30]],
-            "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-            "7":[[75,30],[150,-45],[150,30]],
-            "8":[[75,30],[150,30],[150,105],[0,105]]
-            }
-facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
-           "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
-           "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
-           "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
-           "5":[[[0,105],[0,-105]],[[75,-105],[75,30]],[[75,30],[0,105]]],
-           "6":[[[75,30],[75,-105]],[[150,-45],[75,30]]],
-           "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
-           "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
-           }
-
-state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
 
 # state2 = generateNextLayerStates(new_states[2])
 # print "new state",state2
