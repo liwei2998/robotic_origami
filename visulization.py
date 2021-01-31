@@ -54,33 +54,45 @@ def PolygoninImag(rot_mat,polygon):
             poly[i] = PointsinImg(rot_mat,poly[i])
     return rot_poly
 
-def decideOddEven(stack):
+def decideOddEven(stack,fold,count):
     #return odd and even facets, used for filling different colors
-    odd_facets = []
-    even_facets = []
-    for i in range(len(stack)):
-        if i % 2 ==0:
-            even_facets.append(stack[i])
-        elif i % 2 == 1:
-            odd_facets.append(stack[i])
-    # odd_facets = np.array(odd_facets)
-    # even_facets = np.array(even_facets)
-    # odd_facets.flatten()
-    # even_facets.flatten()
-    # odd_facets = odd_facets.tolist()
-    # even_facets= even_facets.tolist()
-    odd_facets = flatten(odd_facets)
-    even_facets = flatten(even_facets)
-    return odd_facets,even_facets
+    # if valley fold, even is dark
+    light_facets = []
+    dark_facets = []
+    print "count",count
+    if fold == "valley":
+        for i in range(len(stack)):
+            k = i + count
+            if k % 2 == 1:
+                light_facets.append(stack[i])
+            elif k % 2 == 0:
+                dark_facets.append(stack[i])
+    if fold == "mountain":
+        for i in range(len(stack)):
+            k = i + count
+            if k % 2 == 0:
+                dark_facets.append(stack[i])
+            elif k % 2 == 1:
+                light_facets.append(stack[i])
+    if fold == 0:
+        for i in range(len(stack)):
+            if i % 2 == 0:
+                dark_facets.append(stack[i])
+            elif i % 2 == 1:
+                light_facets.append(stack[i])
 
-def drawPolygon(polygon,stack,canvas,rot_mat):
+    light_facets = flatten(light_facets)
+    dark_facets = flatten(dark_facets)
+    return light_facets,dark_facets
+
+def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count):
     rot_poly = PolygoninImag(rot_mat,polygon)
-    odd, even = decideOddEven(stack)
+    odd, even = decideOddEven(stack1,fold,count)
     # print "odd",odd
     # print "even",even
-    for i in range(len(stack)):
-        for j in range(len(stack[i])):
-            facet = stack[i][j]
+    for i in range(len(stack1)):
+        for j in range(len(stack1[i])):
+            facet = stack1[i][j]
             # print "poly",rot_poly[facet]
             # print "facet",facet
             cv2.polylines(canvas,[np.array(rot_poly[facet])],True,(61,139,110),thickness=8)
@@ -98,14 +110,16 @@ def drawPolygon(polygon,stack,canvas,rot_mat):
 # drawPolygon(polygen1,stack1,rot_mat)
 # img = drawPolygon(polygen1,stack1,canvas,rot_mat)
 
-def drawMultiFigs(imgs,column,row):
+def drawMultiFigs(imgs,column,row,img_num):
     for i in range(column):
         for j in range(row):
-            index = i*column + j + 1
+            index = i*column + j+i
             # print "index",index
-            title = "step" + str(index)
-            plt.subplot(column,row,index)
-            plt.imshow(imgs[index-1])
+            if index >= img_num:
+                break
+            title = "step" + str(index+1)
+            plt.subplot(column,row,index+1)
+            plt.imshow(imgs[index])
             plt.title(title,fontsize=12) #,fontweight='bold'
             plt.xticks([])
             plt.yticks([])
