@@ -4,42 +4,42 @@ from shapely.geometry import *
 import copy
 import numpy as np
 
-##############plane
-stack1 = [['1','2','3','4'],['5','6'],['7','8']]
-#counterclock wise
-polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
-            "2":[[-75,30],[-150,30],[-150,-45]],
-            "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-            "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-            "5":[[-75,30],[-75,-105],[0,-105],[0,105]],
-            "6":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-            "7":[[-75,30],[-75,-45],[-150,-45]],
-            "8":[[0,105],[0,-45],[-75,-45],[-75,30]]
-            }
-facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
-           "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
-           "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
-           "4":[[[-75,30],[-75,-105]],[[0,105],[-75,30]]],
-           "5":[[[-75,30],[-75,-105]],[[0,105],[-75,30]]],
-           "6":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
-           "7":[[[-75,-45],[-75,30]]],
-           "8":[[[-75,-45],[-75,30]]]
-           }
-graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
-              "2":[[[-150,30],[-150,-45]]],
-              "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
-              "4":[[[-75,-105],[0,-105]],[[0,-105],[0,105]]],
-              "5":[[[-75,-105],[0,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
-              "6":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]],[[-75,30],[-150,-45]]],
-              "7":[[[-75,30],[-150,-45]],[[-75,-45],[-150,-45]]],
-              "8":[[[0,105],[-75,30]],[[-75,-45],[0,-45]],[[0,-45],[0,105]]]}
-crease_edge={'8': [[[0, 105], [-75, 30]]],
-             '5': [[[0, 105], [-75, 30]],[[0,-105],[0,105]]],
-             '7': [[[-75, 30], [-150, -45]]],
-             '6': [[[-75, 30], [-150, -45]]],
-             '4': [[[0,-105], [0,105]]]}
-state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,"graph_edge":graph_edge,"crease_edge":crease_edge}
 # ##############plane
+# stack1 = [['1','2','3','4'],['5','6'],['7','8']]
+# #counterclock wise
+# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-150,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "6":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "7":[[-75,30],[-75,-45],[-150,-45]],
+#             "8":[[0,105],[0,-45],[-75,-45],[-75,30]]
+#             }
+# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
+#            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
+#            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "4":[[[-75,30],[-75,-105]],[[0,105],[-75,30]]],
+#            "5":[[[-75,30],[-75,-105]],[[0,105],[-75,30]]],
+#            "6":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "7":[[[-75,-45],[-75,30]]],
+#            "8":[[[-75,-45],[-75,30]]]
+#            }
+# graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
+#               "2":[[[-150,30],[-150,-45]]],
+#               "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
+#               "4":[[[-75,-105],[0,-105]],[[0,-105],[0,105]]],
+#               "5":[[[-75,-105],[0,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
+#               "6":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]],[[-75,30],[-150,-45]]],
+#               "7":[[[-75,30],[-150,-45]],[[-75,-45],[-150,-45]]],
+#               "8":[[[0,105],[-75,30]],[[-75,-45],[0,-45]],[[0,-45],[0,105]]]}
+# crease_edge={'8': [[[0, 105], [-75, 30]]],
+#              '5': [[[0, 105], [-75, 30]],[[0,-105],[0,105]]],
+#              '7': [[[-75, 30], [-150, -45]]],
+#              '6': [[[-75, 30], [-150, -45]]],
+#              '4': [[[0,-105], [0,105]]]}
+# state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,"graph_edge":graph_edge,"crease_edge":crease_edge}
+##############plane
 # stack1 = [['1','2','3','4'],['5','6','7','8']]
 # #counterclock wise
 # polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
@@ -258,7 +258,7 @@ def findMinimalCreasebyHeight(stack,facet_crease):
     min_h = 0
     max_h = len(stack) - 1
     if max_h == min_h:
-        creases = findAllCreases1(stack[min_h],facet_crease)
+        creases = findAllCreases(stack[min_h],facet_crease)
         crease = findNonRepetiveCreases(creases)
         if len(crease) == 0:
             return h_crease
@@ -266,14 +266,14 @@ def findMinimalCreasebyHeight(stack,facet_crease):
         h_crease["min"] = min_h_crease
         h_crease["max"] = min_h_crease
     else:
-        creases = findAllCreases1(stack[min_h],facet_crease)
+        creases = findAllCreases(stack[min_h],facet_crease)
         crease = findNonRepetiveCreases(creases)
         if len(crease) == 0:
             return h_crease
         min_h_crease = findMininalSetCrease(crease)
         h_crease["min"] = min_h_crease
 
-        creases = findAllCreases1(stack[max_h],facet_crease)
+        creases = findAllCreases(stack[max_h],facet_crease)
         crease = findNonRepetiveCreases(creases)
         if len(crease) == 0:
             return h_crease
@@ -293,7 +293,7 @@ def ifPointInLine(point,line_func):
     else:
         return 0
 
-def ifCutGraph(crease,stack,height,graph_edge=graph_edge):
+def ifCutGraph(crease,stack,height,graph_edge):
     #test if a crease cuts the origami graph
     #if 2 points of the crease are all on the edge of a graph, return true
     count = 0
@@ -319,7 +319,32 @@ def ifCutGraph(crease,stack,height,graph_edge=graph_edge):
     else:
         return 0
 
-def findReflectionCrease(stack,facet_crease,polygon):
+polygen = {'1': [[0, 105], [0, -45], [-75, -45], [-75, 30]],
+           '3': [[-150, -45], [-150, -105], [-75, -105], [-75, 30]],
+           '2': [[-75, 30], [-75, -45], [-150, -45]],
+           '5': [[-75, 30], [-75, -105], [0, -105], [0, 105]],
+           '4': [[-75, 30], [-75, -105], [0, -105], [0, 105]],
+           '7': [[-75, 30], [-75, -45], [-150, -45]],
+           '6': [[-150, -45], [-150, -105], [-75, -105], [-75, 30]],
+           '8': [[0, 105], [0, -45], [-75, -45], [-75, 30]]}
+facet_crease = {'1': [[[-75, -45], [-75, 30]]],
+                '3': [[[-75, -105], [-75, 30]]],
+                '2': [[[-75, 30], [-75, -45]]],
+                '5': [[[-75, 30], [-75, -105]]],
+                '4': [[[-75, 30], [-75, -105]]],
+                '7': [[[-75, 30], [-75, -45]]],
+                '6': [[[-75, -105], [-75, 30]]],
+                '8': [[[-75, -45], [-75, 30]]]}
+stack = [['3', '4'], ['5', '6'], ['7', '8'], ['1', '2']]
+graph_edge = {'1': [[[-75, -45], [0, -45]], [[0, -45], [0, 105]], [[-75, 30], [0, 105]]],
+              '3': [[[-150, -45], [-150, -105]], [[-150, -105], [-75, -105]], [[-150, -45], [-75, 30]], [[-150, -45], [-75, 30]]],
+              '2': [[[-75, -45], [-150, -45]], [[-150, -45], [-75, 30]]],
+              '5': [[[-75, -105], [0, -105]], [[0, -105], [0, 105]]],
+              '4': [[[-75, -105], [0, -105]], [[0, -105], [0, 105]], [[-75, 30], [0, 105]], [[-75, 30], [0, 105]]],
+              '7': [[[-75, -45], [-150, -45]], [[-150, -45], [-75, 30]]],
+              '6': [[[-150, -45], [-150, -105]], [[-150, -105], [-75, -105]]],
+              '8': [[[-75, -45], [0, -45]], [[0, -45], [0, 105]], [[-75, 30], [0, 105]]]}
+def findReflectionCrease(stack,facet_crease,polygon,graph_edge):
     #find reflection crease either in the min or max height
     #reflection crease is in findMinimalCreasebyHeight and cutGraph
     reflect_crease={"min":[],"max":[]}
@@ -330,7 +355,7 @@ def findReflectionCrease(stack,facet_crease,polygon):
         for i in range(len(h_crease_tmp)):
             crease = h_crease_tmp[i]
             # print "crease",crease
-            if ifCutGraph(crease,stack,0)==1:
+            if ifCutGraph(crease,stack,0,graph_edge)==1:
                 reflect_crease["min"].append(crease)
                 reflect_crease["max"].append(crease)
         return reflect_crease
@@ -342,7 +367,7 @@ def findReflectionCrease(stack,facet_crease,polygon):
         else:
             for i in range(len(min_h_crease)):
                 crease = min_h_crease[i]
-                if ifCutGraph(crease,stack,0)==1:
+                if ifCutGraph(crease,stack,0,graph_edge)==1:
                     reflect_crease["min"].append(crease)
                 else:
                     continue
@@ -353,12 +378,13 @@ def findReflectionCrease(stack,facet_crease,polygon):
         else:
             for i in range(len(max_h_crease)):
                 crease = max_h_crease[i]
-                if ifCutGraph(crease,stack,(len(stack)-1))==1:
+                if ifCutGraph(crease,stack,(len(stack)-1),graph_edge)==1:
                     reflect_crease["max"].append(crease)
                 else:
                     continue
         return reflect_crease
-
+# reflect_crease = findReflectionCrease(stack,facet_crease,polygen,graph_edge)
+# print "reflecttt",reflect_crease
 def is_inPoly(polygen,point):
     #determine if a point is in a polygen
     line = LineString(polygen)
@@ -421,7 +447,8 @@ def findCreaseSets(crease,stack,polygon,height,facet_crease):
                     tmp = 999
                     break
         return crease_set
-
+# crease_sets = findCreaseSets(reflect_crease['max'][0],stack,polygen,3,facet_crease)
+# print "crease setsss",crease_sets
 def reverseLineDirection(line):
     tmp = line[0]
     line[0] = line[1]
@@ -502,7 +529,12 @@ def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='4'):
         elif init_h == 0:
             count = count + 1
             height = height + 1
-
+# flaps0 = findFlapsbyCreaseSet(crease_sets[0],stack,3,polygen)
+# print "flaps0",flaps0
+# flaps1 = findFlapsbyCreaseSet(crease_sets[1],stack,3,polygen)
+# print "flaps1",flaps1
+# flaps2 = findFlapsbyCreaseSet(crease_sets[2],stack,3,polygen)
+# print "flaps2",flaps2
 def findFacetwithSameEdge(crease_edge,stack,edge,facet):
     #return facet that shares the same edge
     facets = []
@@ -559,35 +591,65 @@ def ifFlapReflect(flaps,stack,polygen):
                 continue
     return 0
 
-def ifFlapsFeasible(flaps,crease_edge,stack):
+def ifHasAdjacents(facet,facets,adjacent_facets):
+    #input a facet, test if its adjacent_facets are in facets
+    # return 0 if no
+    adj_facets = adjacent_facets[facet]
+    is_adj = npi.intersection(adj_facets,facets)
+    if len(is_adj) == 0:
+        return 0
+    else:
+        return 1
+
+def ifFlapsFeasible(flaps,crease_edge,stack,adjacent_facets):
     #return if the flap facets are feasible
     # facets in flaps are feasible when a) it does not have crease_edge
     # or b) two facets share the same crease_edge
+    # and c) flap facets are adjacent pairs
+    # a) or (b) and c))
     # return 1 if yes
-    flap_tmp = np.array(flaps)
-    flap_tmp = flap_tmp.flatten()
+    flap_tmp = [x for j in flaps for x in j]
     # print "flap_tmp",flap_tmp
-    for i in range(len(flaps)):
-        for j in range(len(flaps[i])):
-            facet = flaps[i][j]
-            tmp = []
-            tmp = npi.difference(flap_tmp,[facet])
-            # print "tmp",tmp
-            if facet not in crease_edge.keys():
-                continue
-            else:
-                edges = crease_edge[facet]
-                for k in edges:
-                    same_edge_facets = findFacetwithSameEdge(crease_edge,stack,k,facet)
-                    # print "same_edge_facets",same_edge_facets
-                    is_in = npi.intersection(same_edge_facets,tmp)
-                    is_in = len(is_in)
-                    if is_in > 0:
-                        continue
-                    else:
-                        return 0
+    # count = 0
+    for i in range(len(flap_tmp)):
+        facet = flap_tmp[i]
+        tmp = npi.difference(flap_tmp,[facet])
+        if facet not in crease_edge.keys():
+            # count = count + 1
+            continue
+        else:
+            if ifHasAdjacents(facet,flap_tmp,adjacent_facets) == 0:
+                return 0
+            edges = crease_edge[facet]
+            for k in edges:
+                same_edge_facets = findFacetwithSameEdge(crease_edge,stack,k,facet)
+                # print "same_edge_facets",same_edge_facets
+                is_in = npi.intersection(same_edge_facets,tmp)
+                is_in = len(is_in)
+                if is_in > 0:
+                    continue
+                else:
+                    return 0
     return 1
-
+#
+# adjacent_facets = {'1':['2','4'],
+#                    '2':['1','3'],
+#                    '3':['2','4'],
+#                    '4':['1','3','5'],
+#                    '5':['4','6','8'],
+#                    '6':['5','7'],
+#                    '7':['6','8'],
+#                    '8':['5','7']}
+# crease_edge = {'1': [[[-75, 30], [0, 105]]],
+#                '3': [[[-150, -45], [-75, 30]]],
+#                '2': [[[-150, -45], [-75, 30]]],
+#                '5': [[[0, -105], [0, 105]]],
+#                '4': [[[0, -105], [0, 105]], [[-75, 30], [0, 105]]],
+#                '7': [[[-150, -45], [-75, 30]]],
+#                '8': [[[-75, 30], [0, 105]]]}
+# print "if flaps0 feasible?",ifFlapsFeasible(flaps0,crease_edge,stack,adjacent_facets)
+# print "if flaps1 feasible?",ifFlapsFeasible(flaps1,crease_edge,stack,adjacent_facets)
+# print "if flaps2 feasible?",ifFlapsFeasible(flaps2,crease_edge,stack,adjacent_facets)
 def divideReflectStack(crease_set,height,stack,polygon,crease_edge):
     #specially for reflection fold, return base, flap and sign(mountain or valley)
     #define base at the right of crease, crease has direction
@@ -672,10 +734,37 @@ def reverseCrease(flap,crease,facet_crease):
             new_facet_crease[facet] = new_creases
     return new_facet_crease
 
-def newStateCrease(crease,facet_crease):
-    #delete folded crease in new state
+def findAdjandSameCreaseFacet(facet,facet_crease,crease,adjacent_facets):
+    #return a facet that a) adjacent to input facet
+    # and b) has the same creases as the facet
+    adj_facets = adjacent_facets[facet]
+    # print "adj_facets",adj_facets
+    for i in range(len(adj_facets)):
+        facett = adj_facets[i]
+        creases = facet_crease[facett]
+        # print "facett",facett
 
-    for facet in facet_crease.keys():
+        for k in creases:
+            # print "creaseee",k
+            if ifLineColinear(k,crease)==1:
+                return facett
+
+def newStateCrease(crease,facet_crease,flaps,adjacent_facets):
+    #delete folded crease in new state
+    flap_tmp = [x for j in flaps for x in j]
+    # print "crease",crease
+    # print "flap_tmp",flap_tmp
+    #find all facets that contain this creasse
+    for i in range(len(flap_tmp)):
+        facet = flap_tmp[i]
+        # print "facet",facet
+        f_tmp = findAdjandSameCreaseFacet(facet,facet_crease,crease,adjacent_facets)
+        flap_tmp.append(f_tmp)
+    # print "flap_tmp1",flap_tmp
+    flap_tmp = set(flap_tmp)
+    flap_tmp = list(flap_tmp)
+    # print "flap_tmp2",flap_tmp
+    for facet in flap_tmp:
         new_creases = copy.deepcopy(facet_crease[facet])
         for i in range(len(new_creases)):
             # print "new",new_creases[i]
@@ -956,7 +1045,7 @@ def reverseStack(base,flap,crease,polygen,sign):
 # crease_edge = findCreaseEdge(new_edges,crease_edge)
 # print "crease edge",crease_edge
 
-def generateNextStateInformation(stack,polygen,facet_crease,crease,sign,graph_edge,crease_edge,crease_sets=0,reflect=0):
+def generateNextStateInformation(stack,polygen,facet_crease,crease,sign,graph_edge,crease_edge,adj_facets,crease_sets=0,reflect=0):
     '''
     Given a feasible crease fold, previous stack and polygen and facet_crease information,
     return new stack and polygen and facet_crease information.
@@ -993,7 +1082,7 @@ def generateNextStateInformation(stack,polygen,facet_crease,crease,sign,graph_ed
     #generate new facet creases
     reversed_creases = reverseCrease(flap,crease,facet_crease)
     # print "reversed crease",reversed_creases
-    new_crease = newStateCrease(crease,reversed_creases)
+    new_crease = newStateCrease(crease,reversed_creases,flap,adj_facets)
 
     #generate new graph edges and new crease edge
     reversed_edge = reverseGraphEdge(crease,flap,graph_edge)
@@ -1021,16 +1110,17 @@ def ifReflectable(state):
     crease_set_max = []
     if len(state["stack"]) == 1:
         return m,crease_set_min,crease_set_max
-    reflect_crease = findReflectionCrease(state["stack"],state["facet_crease"],state["polygen"])
+    reflect_crease = findReflectionCrease(state["stack"],state["facet_crease"],state["polygen"],state["graph_edge"])
+    # print "reflect crease",reflect_crease
     if len(reflect_crease["min"]) != 0:
         h = 0
         for r_crease in reflect_crease["min"]:
             crease_sets = findCreaseSets(r_crease,state["stack"],state["polygen"],h,state["facet_crease"])
             for i in range(len(crease_sets)):
                 flaps = findFlapsbyCreaseSet(crease_sets[i],state['stack'],h,state['polygen'])
-                if ifFlapsFeasible(flaps,state["crease_edge"],state["stack"]) == 0:
+                if ifFlapsFeasible(flaps,state["crease_edge"],state["stack"],state["adjacent_facets"]) == 0:
                     continue
-                elif ifFlapsFeasible(flaps,state["crease_edge"],state["stack"]) == 1 and ifFlapReflect(flaps,state["stack"],state["polygen"]) == 1:
+                elif ifFlapsFeasible(flaps,state["crease_edge"],state["stack"],state["adjacent_facets"]) == 1 and ifFlapReflect(flaps,state["stack"],state["polygen"]) == 1:
                     b = 888
                     crease_set_min = crease_sets[i]
                     break
@@ -1039,16 +1129,16 @@ def ifReflectable(state):
 
     if len(reflect_crease["max"]) != 0:
         h = len(state["stack"]) - 1
-        if len(crease_set_min)!=0:
-            print "graph_edge",state['graph_edge']
-            print "reflect crease",reflect_crease["max"]
+        # if len(crease_set_min)!=0:
+        #     print "graph_edge",state['graph_edge']
+        #     print "reflect crease",reflect_crease["max"]
         for r_crease in reflect_crease["max"]:
             crease_sets = findCreaseSets(r_crease,state["stack"],state["polygen"],h,state["facet_crease"])
             for i in range(len(crease_sets)):
                 flaps = findFlapsbyCreaseSet(crease_sets[i],state['stack'],h,state['polygen'])
-                if ifFlapsFeasible(flaps,state["crease_edge"],state["stack"]) == 0:
+                if ifFlapsFeasible(flaps,state["crease_edge"],state["stack"],state["adjacent_facets"]) == 0:
                     continue
-                elif ifFlapsFeasible(flaps,state["crease_edge"],state["stack"]) == 1 and ifFlapReflect(flaps,state["stack"],state["polygen"]) == 1:
+                elif ifFlapsFeasible(flaps,state["crease_edge"],state["stack"],state["adjacent_facets"]) == 1 and ifFlapReflect(flaps,state["stack"],state["polygen"]) == 1:
                     # print "flaaaaap",flaps
                     a = 888
                     crease_set_max = crease_sets[i]
@@ -1068,7 +1158,7 @@ def ifReflectable(state):
         m = 0
         return m,crease_set_min,crease_set_max
 
-def generateNextLayerStates(state):
+def generateNextLayerStates(state,adj_facets):
     '''
     input parent node state information, return next layer's children states
     '''
@@ -1083,20 +1173,21 @@ def generateNextLayerStates(state):
     #how to set(min_crease)
     #find all feasible creases
     feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
-    # print "feasible crease",feasible_crease
+    print "feasible crease",feasible_crease
     #generate new states for each feasible crease
     for i in range(len(feasible_crease)):
         state_tmp = {}
         new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
                                                                                                     state["facet_crease"],feasible_crease[i],
                                                                                                     "+",state["graph_edge"],
-                                                                                                    state["crease_edge"])
+                                                                                                    state["crease_edge"],adj_facets)
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
         state_tmp["fold"] = "valley"
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = crease_edge
+        state_tmp["adjacent_facets"] = adj_facets
 
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
@@ -1105,14 +1196,14 @@ def generateNextLayerStates(state):
         new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
                                                                                                     state["facet_crease"],feasible_crease[i],
                                                                                                     "-",state["graph_edge"],
-                                                                                                    state["crease_edge"])
+                                                                                                    state["crease_edge"],adj_facets)
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
         state_tmp["fold"] = "mountain"
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = crease_edge
-
+        state_tmp["adjacent_facets"] = adj_facets
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
 
@@ -1125,7 +1216,7 @@ def generateNextLayerStates(state):
         new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
                                                                                                     state["facet_crease"],0,
                                                                                                     "+",state["graph_edge"],
-                                                                                                    state["crease_edge"],
+                                                                                                    state["crease_edge"],adj_facets,
                                                                                                     crease_sets=crease_set_max,reflect=1)
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
@@ -1133,6 +1224,7 @@ def generateNextLayerStates(state):
         state_tmp["fold"] = "valley"
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = crease_edge
+        state_tmp["adjacent_facets"] = adj_facets
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
 
@@ -1142,7 +1234,7 @@ def generateNextLayerStates(state):
         new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
                                                                                                     state["facet_crease"],0,
                                                                                                     "-",state["graph_edge"],
-                                                                                                    state["crease_edge"],
+                                                                                                    state["crease_edge"],adj_facets,
                                                                                                     crease_sets=crease_set_min,reflect=1)
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
@@ -1150,6 +1242,7 @@ def generateNextLayerStates(state):
         state_tmp["fold"] = "mountain"
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = crease_edge
+        state_tmp["adjacent_facets"] = adj_facets
 
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
@@ -1160,7 +1253,7 @@ def generateNextLayerStates(state):
         new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
                                                                                                     state["facet_crease"],0,
                                                                                                     "-",state["graph_edge"],
-                                                                                                    state["crease_edge"],
+                                                                                                    state["crease_edge"],adj_facets,
                                                                                                     crease_sets=crease_set_min,reflect=1)
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
@@ -1168,6 +1261,7 @@ def generateNextLayerStates(state):
         state_tmp["fold"] = "mountain"
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = crease_edge
+        state_tmp["adjacent_facets"] = adj_facets
 
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
@@ -1176,7 +1270,7 @@ def generateNextLayerStates(state):
         new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
                                                                                                     state["facet_crease"],0,
                                                                                                     "+",state["graph_edge"],
-                                                                                                    state["crease_edge"],
+                                                                                                    state["crease_edge"],adj_facets,
                                                                                                     crease_sets=crease_set_max,reflect=1)
         state_tmp["stack"] = new_stack
         state_tmp["polygen"] = new_polygen
@@ -1184,7 +1278,51 @@ def generateNextLayerStates(state):
         state_tmp["fold"] = "valley"
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = crease_edge
+        state_tmp["adjacent_facets"] = adj_facets
 
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
     return new_states
+
+# crease_edge = {'8': [[[-75, 30], [0, 105]], [[-75, -45], [-75, 30]]],
+#                '5': [[[0, -105], [0, 105]], [[-75, 30], [0, 105]], [[-75, -105], [-75, 30]]],
+#                '4': [[[0, -105], [0, 105]]],
+#                '7': [[[0, -45], [-75, 30]], [[-75, -45], [-75, 30]]],
+#                '6': [[[0, -45], [-75, 30]], [[-75, -105], [-75, 30]]]}
+# graph_edge = {'1': [[[-150, 30], [-150, 105]], [[-150, 105], [0, 105]]],
+#               '3': [[[-150, -45], [-150, -105]], [[-150, -105], [-75, -105]]],
+#               '2': [[[-150, 30], [-150, -45]]],
+#               '5': [[[-75, -105], [0, -105]], [[0, -105], [0, 105]], [[-75, 30], [0, 105]], [[-75, -105], [-75, 30]]],
+#               '4': [[[-75, -105], [0, -105]], [[0, -105], [0, 105]]],
+#               '7': [[[-75, -45], [0, -45]], [[0, -45], [-75, 30]], [[-75, -45], [-75, 30]]],
+#               '6': [[[0, -45], [0, -105]], [[0, -105], [-75, -105]], [[0, -45], [-75, 30]], [[-75, -105], [-75, 30]]],
+#               '8': [[[-75, -45], [0, -45]], [[0, -45], [0, 105]], [[-75, 30], [0, 105]], [[-75, -45], [-75, 30]]]}
+# polygen1 = {'1': [[0, 105], [-150, 105], [-150, 30], [-75, 30]],
+#             '3': [[-150, -45], [-150, -105], [-75, -105], [-75, 30]],
+#             '2': [[-75, 30], [-150, 30], [-150, -45]],
+#             '5': [[-75, 30], [-75, -105], [0, -105], [0, 105]],
+#             '4': [[-75, 30], [-75, -105], [0, -105], [0, 105]],
+#             '7': [[-75, 30], [-75, -45], [0, -45]],
+#             '6': [[0, -45], [0, -105], [-75, -105], [-75, 30]],
+#             '8': [[0, 105], [0, -45], [-75, -45], [-75, 30]]}
+# facets1 = {'1': [[[-150, 30], [-75, 30]]],
+#            '3': [],
+#            '2': [[[-75, 30], [-150, 30]]],
+#            '5': [],
+#            '4': [],
+#            '7': [],
+#            '6': [],
+#            '8': []}
+# adjacent_facets = {'1':['2','4'],
+#                    '2':['1','3'],
+#                    '3':['2','4'],
+#                    '4':['1','3','5'],
+#                    '5':['4','6','8'],
+#                    '6':['5','7'],
+#                    '7':['6','8'],
+#                    '8':['5','7']}
+# state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
+#           "graph_edge":graph_edge,"crease_edge":crease_edge,
+#           "adjacent_facets":adjacent_facets}
+# new_state = generateNextLayerStates(state1)
+# print "new_state[0]",new_state[0]
