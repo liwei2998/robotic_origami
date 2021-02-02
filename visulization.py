@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import copy
+import matplotlib.gridspec as gridspec
 from compiler.ast import flatten
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
@@ -27,10 +28,13 @@ from compiler.ast import flatten
 #            }
 
 #light blue:(230,245,253)
-#light blue: (240,255,255) (255,240,245)
-def init_canvas(width, height, color=(255,240,245)):
+#light blue: (240,255,255) pink:(255,240,245)
+def init_canvas(width, height,reflec=0, color1=(230,245,253), color2=(255,240,245)):
     canvas = np.ones((height, width, 3), dtype="uint8")
-    canvas[:] = color
+    if reflec == 0:
+        canvas[:] = color1
+    elif reflec == 1:
+        canvas[:] = color2
     return canvas
 
 def rotationFromImg(weight,height,hat=0):
@@ -116,9 +120,23 @@ def decideOddEven(stack,fold,count):
     dark_facets = flatten(dark_facets)
     return light_facets,dark_facets
 
-def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count):
+def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count,reflec=0):
     rot_poly = PolygoninImag(rot_mat,polygon)
     odd, even = decideOddEven(stack1,fold,count)
+    color11 = (139,58,98)
+    color21 = (255,181,197)
+    color31 = (205,96,144)
+    color10 = (61,139,110)
+    color20 = (193,255,193)
+    color30 = (90,205,162)
+    if reflec == 0:
+        color1 = color10
+        color2 = color20
+        color3 = color30
+    elif reflec == 1:
+        color1 = color11
+        color2 = color21
+        color3 = color31
     # print "odd",odd
     # print "even",even
     for i in range(len(stack1)):
@@ -126,11 +144,11 @@ def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count):
             facet = stack1[i][j]
             # print "poly",rot_poly[facet]
             # print "facet",facet
-            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,(139,58,98),thickness=8) #green:(61,139,110) gold:(76,129,139) purple:(139,102,139)
+            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,color1,thickness=8) #green:(61,139,110) gold:(76,129,139) purple:(139,102,139)
             if facet in odd:
-                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(255,181,197)) #green:(193,255,193) gold:(139,236,255) purple:(255,187,255)
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],color2) #green:(193,255,193) gold:(139,236,255) purple:(255,187,255)
             elif facet in even:
-                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(205,96,144)) #green:(90,205,162) gold:(112,190,205) purple:(205,150,205)
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],color3) #green:(90,205,162) gold:(112,190,205) purple:(205,150,205)
 
     # cv2.imshow('poly', canvas)
     # cv2.waitKey(0)
@@ -161,11 +179,29 @@ def drawline(img,pt1,pt2,color,thickness=3,style='dotted',gap=10):
                 cv2.line(img,s,e,color,thickness)
             i+=1
 
-def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,feasible_crease,reflect=0):
+def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,feasible_crease,crease_set=[],reflect=0):
     rot_min_creases = CreaseinImag(rot_mat,min_crease)
     rot_feasible_creases = CreaseinImag(rot_mat,feasible_crease)
     rot_poly = PolygoninImag(rot_mat,polygon)
+    rot_c_set = copy.deepcopy(crease_set)
+    if len(crease_set)!=0:
+        for i in range(len(crease_set)):
+            rot_c_set[i] = CreaseinImag(rot_mat,crease_set[i])
     odd, even = decideOddEven(stack1,fold,count)
+    color11 = (139,58,98)
+    color21 = (255,181,197)
+    color31 = (205,96,144)
+    color10 = (61,139,110)
+    color20 = (193,255,193)
+    color30 = (90,205,162)
+    if reflect == 0:
+        color1 = color10
+        color2 = color20
+        color3 = color30
+    elif reflect == 1:
+        color1 = color11
+        color2 = color21
+        color3 = color31
     # print "odd",odd
     # print "even",even
     for i in range(len(stack1)):
@@ -173,11 +209,11 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
             facet = stack1[i][j]
             # print "poly",rot_poly[facet]
             # print "facet",facet
-            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,(61,139,110),thickness=8) #green:(61,139,110) pink:(139,58,98) gold:(76,129,139) purple:(139,102,139)
+            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,color1,thickness=8) #green:(61,139,110) pink:(139,58,98) gold:(76,129,139) purple:(139,102,139)
             if facet in odd:
-                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(193,255,193)) #green:(193,255,193) pink:(255,181,197) gold:(139,236,255) purple:(255,187,255)
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],color2) #green:(193,255,193) pink:(255,181,197) gold:(139,236,255) purple:(255,187,255)
             elif facet in even:
-                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(90,205,162)) #green:(90,205,162) pink:(205,96,144) gold:(112,190,205) purple:(205,150,205)
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],color3) #green:(90,205,162) pink:(205,96,144) gold:(112,190,205) purple:(205,150,205)
     for i in range(len(rot_min_creases)):
         p1 = rot_min_creases[i][0]
         p2 = rot_min_creases[i][1]
@@ -216,3 +252,21 @@ def drawMultiFigs(imgs,column,row,img_num):
             plt.title(title,fontsize=12) #,fontweight='bold'
             plt.xticks([])
             plt.yticks([])
+
+def drawMultiFigsGraph(imgs,row):
+    gs0 = gridspec.GridSpec(2,1)
+    gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
+    gs2 = gridspec.GridSpecFromSubplotSpec(1,row,subplot_spec=gs0[1])
+    ax1 = plt.subplot(gs1[0,1])
+    ax1.imshow(imgs[0])
+    plt.title("parent node",fontsize=12)
+    plt.xticks([])
+    plt.yticks([])
+    for i in range(1,len(imgs)):
+        ax = plt.subplot(gs2[0,i-1])
+        ax.imshow(imgs[i])
+        title = "node" + str(i)
+        plt.title(title,fontsize=8)
+        plt.xticks([])
+        plt.yticks([])
+    plt.tight_layout()

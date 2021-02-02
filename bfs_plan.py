@@ -199,7 +199,7 @@ def bfs(state_graph, src, tgt_stack):
     # #dynamic generate variable's names, using locals()
     # names = locals()
     a = 1
-    while a<2:
+    while a<5:
         a=a+1
         node = queue.popleft()
         # print "node",node
@@ -305,10 +305,19 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],
     # print "stack step",stack_step
     return path,stack_step,state_dict
 
+def visualSimpleGraph(state_graph,parent_state,state_dict,adjacent_facets):
+    imgs = []
+    _,img = osg.VisualNextLayerStates(state_dict[parent_state],adjacent_facets)
+    # vl.drawOneFig(img)
+    imgs.append(img)
+    for node in state_graph[parent_state]:
+        _,img = osg.VisualNextLayerStates(state_dict[node],adjacent_facets)
+        imgs.append(img)
+    vl.drawMultiFigsGraph(imgs,len(state_graph[parent_state]))
+    plt.show()
 path,stack_step,state_dict = findPath()
 print "path",path
-_,img = osg.VisualNextLayerStates(state_dict["state4"],adjacent_facets)
-vl.drawOneFig(img)
+visualSimpleGraph(state_graph,"state4",state_dict,adjacent_facets)
 # for i in range(len(path)):
 #     print "state dict",state_dict[path[i]]
 print "graph",state_graph
