@@ -11,6 +11,7 @@ import math
 import matplotlib.pyplot as plt
 
 #################### simple hat
+# rot = [[0,-1,0],[1,0,0],[0,0,1]]
 stack1 = [['1','2','3','4','5','6','7','8']]
 #counterclock wise
 polygen1 = {"1":[[-105,105],[105,105],[105,150],[-105,150]],
@@ -34,7 +35,7 @@ facets1 = {"1":[[[-105,105],[105,105]]],
 graph_edge = {"1":[[[105,105],[105,150]],[[105,150],[-105,150]],[[-105,150],[-105,105]]],
               # "2":[[[-150,30],[-150,-45]]],
               "3":[[[-105,105],[-105,0]]],
-              "4":[[[-105,0],[-105,-105]]],
+              "4":[[[105,0],[105,105]]],
               "5":[[[-105,0],[-105,-105]]],
               # "6":[[[150,-105],[150,-45]],[[75,-105],[150,-105]]],
               "7":[[[105,-105],[105,0]]],
@@ -102,9 +103,11 @@ adjacent_facets = {'1':['2'],
 #             "4":[[0,0],[-100,-100],[-100,100]]}
 # stack1 = [["1","2","3","4"]]
 #################### fig.7 plane
-# stack1 = [['1','2','3','4','5','6','7','8']]
+# global stack2
+# global polygen2
+# stack2 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
-# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
+# polygen2 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
 #             "2":[[-75,30],[-150,30],[-150,-45]],
 #             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
 #             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
@@ -113,7 +116,7 @@ adjacent_facets = {'1':['2'],
 #             "7":[[75,30],[150,-45],[150,30]],
 #             "8":[[75,30],[150,30],[150,105],[0,105]]
 #             }
-# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
+# facets2 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
 #            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
 #            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
 #            "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
@@ -122,7 +125,7 @@ adjacent_facets = {'1':['2'],
 #            "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
 #            "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
 #            }
-# graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
+# graph_edge2 = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
 #               "2":[[[-150,30],[-150,-45]]],
 #               "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
 #               "4":[[[-75,-105],[0,-105]]],
@@ -130,8 +133,16 @@ adjacent_facets = {'1':['2'],
 #               "6":[[[150,-105],[150,-45]],[[75,-105],[150,-105]]],
 #               "7":[[[150,-45],[150,30]]],
 #               "8":[[[150,30],[150,105]],[[150,105],[0,105]]]}
-# crease_edge = {}
-################### fig7. cup
+# crease_edge2 = {}
+# adjacent_facets2 = {'1':['2','4'],
+#                    '2':['1','3'],
+#                    '3':['2','4'],
+#                    '4':['1','3','5'],
+#                    '5':['4','6','8'],
+#                    '6':['5','7'],
+#                    '7':['6','8'],
+#                    '8':['5','7']}
+# ################### fig7. cup
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
 # polygen1 = {"1":[[50,50],[0,100],[-50,50]],
@@ -152,6 +163,21 @@ adjacent_facets = {'1':['2'],
 #            "7":[[[100,0],[33,0]],[[33,0],[50,-50]]],
 #            "8":[[[50,-50],[-50,-50]]]
 #            }
+# adjacent_facets = {'1':['3'],
+#                    '2':['3','5'],
+#                    '3':['1','2','4','6'],
+#                    '4':['3','7'],
+#                    '5':['2','6'],
+#                    '6':['3','5','7','8'],
+#                    '7':['4','6'],
+#                    '8':['1']}
+# crease_edge = {}
+# graph_edge = {'1':[[[50,50],[0,100]],[[0,100],[-50,50]]],
+#               '2':[[[-50,50],[-100,0]]],
+#               '4':[[[100,0],[50,50]]],
+#               '5':[[[-100,0],[-50,-50]]],
+#               '7':[[[100,0],[50,-50]]],
+#               '8':[[[50,-50],[0,-100]],[[0,-100],[-50,-50]]]}
 # state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
@@ -174,7 +200,6 @@ def bfs(state_graph, src, tgt_stack):
     # names = locals()
     a = 1
     while queue:
-        a = a+1
         node = queue.popleft()
         # print "node",node
         state_node = state_dict[node]
@@ -210,11 +235,12 @@ def bfs(state_graph, src, tgt_stack):
 
     return path
 # simple hat
-# goal = [['8'],['6'],['2'],['3','4'],['5','7'],['1']]
+# goal = [['1'],['2'],['6'],['7','5'],['4','3'],['8']]
 #fig.5 simple fold
 # path = bfs(state_graph,"state1",[['3'],['4'],['1'],['2']])
 # fig.7 plane
 # path = bfs(state_graph,"state1",[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']])
+# reflection plane [['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']]
 #fig.7 cup
 # path = bfs(state_graph,"state1",[['8'],['6'],['3'],['4'],['7'],['2'],['5'],['1']])
 #fig.7 cup_deprecated
@@ -227,9 +253,9 @@ def bfs(state_graph, src, tgt_stack):
 #     step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
 #     stack_step.append(step_tmp)
 # print "stack step",stack_step
-
+#,polygen2=polygen2,stack2=stack2s
 def visualSteps(state_dict,path):
-    img_num = len(path)
+    img_num = len(path) #+ 1
     print "img num",img_num
     row = 3
     if img_num % row == 0:
@@ -243,13 +269,17 @@ def visualSteps(state_dict,path):
     # h = 250 #cup
     # w = 300 #fig5
     # h = 300 #fig5
-    w = 400
-    h = 300
+    w = 450
+    h = 350
     imgs=[]
     count = 0
+    # canvas = vl.init_canvas(w,h)
+    # rot_mat = vl.rotationFromImg(w,h,0)
+    # img=vl.drawPolygon(polygen2,stack2,canvas,rot_mat,0,count=0)
+    # imgs.append(img)
     for i in range(len(path)):
         canvas = vl.init_canvas(w,h)
-        rot_mat = vl.rotationFromImg(w,h)
+        rot_mat = vl.rotationFromImg(w,h,0)
         fold = state_dict[path[i]]["fold"]
         stack = state_dict[path[i]]["stack"]
         if i == 0:
@@ -264,7 +294,7 @@ def visualSteps(state_dict,path):
     vl.drawMultiFigs(imgs,column,row,img_num)
     plt.show()
 
-def findPath(state_graph=state_graph,src="state1",goal_stack=[['8'],['6'],['2'],['3','4'],['5','7'],['1']]):
+def findPath(state_graph=state_graph,src="state1",goal_stack=[['1'],['2'],['6'],['7','5'],['4','3'],['8']]):
     path = bfs(state_graph,src,goal_stack)
     # print "path",path
     stack_step = []
@@ -275,8 +305,9 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['8'],['6'],['2'],
     return path,stack_step,state_dict
 
 path,stack_step,state_dict = findPath()
-# print "state step",stack_step
+print "state step",stack_step
 visualSteps(state_dict,path)
+# print "state dict",state_dict['state2']
 # print "path",path
 # for i in range(len(path)):
 #     print "state dict",state_dict[path[i]]["fold"]

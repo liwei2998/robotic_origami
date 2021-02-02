@@ -26,17 +26,23 @@ from compiler.ast import flatten
 #            "8":[[[50,-50],[-50,-50]]]
 #            }
 
-
-def init_canvas(width, height, color=(230,245,253)):
+#light blue:(230,245,253)
+#light blue: (240,255,255) (255,240,245)
+def init_canvas(width, height, color=(255,240,245)):
     canvas = np.ones((height, width, 3), dtype="uint8")
     canvas[:] = color
     return canvas
 
-def rotationFromImg(weight,height):
+def rotationFromImg(weight,height,hat=0):
     #return rotation matrix
-    rot_mat = [[1,0,weight/2],
-               [0,-1,height/2],
-               [0,0,1]]
+    if hat == 0:
+        rot_mat = [[1,0,weight/2],
+                   [0,-1,height/2],
+                   [0,0,1]]
+    else:
+        rot_mat = [[0,1,weight/2],
+                   [1,0,height/2],
+                   [0,0,1]]
     return rot_mat
 
 def PointsinImg(rot_mat,point):
@@ -53,6 +59,22 @@ def PolygoninImag(rot_mat,polygon):
         for i in range(len(poly)):
             poly[i] = PointsinImg(rot_mat,poly[i])
     return rot_poly
+
+def LineRotation(rot_mat,line):
+    point1 = line[0]
+    point2 = line[1]
+    new_p1 = PointsinImg(rot_mat,point1)
+    new_p2 = PointsinImg(rot_mat,point2)
+    new_line = [new_p1[:2],new_p2[:2]]
+    return new_line
+
+def EdgeRotation(rot_mat,edge_dict):
+    rot_edge = copy.deepcopy(edge_dict)
+    for edge in rot_edge.keys():
+        lines = rot_edge[edge]
+        for line in lines:
+            line = LineRotation(rot_mat,line)
+    return rot_edge
 
 def decideOddEven(stack,fold,count):
     #return odd and even facets, used for filling different colors
@@ -95,11 +117,11 @@ def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count):
             facet = stack1[i][j]
             # print "poly",rot_poly[facet]
             # print "facet",facet
-            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,(61,139,110),thickness=8)
+            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,(139,58,98),thickness=8) #green:(61,139,110) gold:(76,129,139) purple:(139,102,139)
             if facet in odd:
-                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(193,255,193)) #,,,(112,255,202) (193,255,193)
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(255,181,197)) #green:(193,255,193) gold:(139,236,255) purple:(255,187,255)
             elif facet in even:
-                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(90,205,162)) # ,,(112,255,202) (193,255,193)
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(205,96,144)) #green:(90,205,162) gold:(112,190,205) purple:(205,150,205)
 
     # cv2.imshow('poly', canvas)
     # cv2.waitKey(0)
