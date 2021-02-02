@@ -65,8 +65,17 @@ def LineRotation(rot_mat,line):
     point2 = line[1]
     new_p1 = PointsinImg(rot_mat,point1)
     new_p2 = PointsinImg(rot_mat,point2)
-    new_line = [new_p1[:2],new_p2[:2]]
+    new_p1 = new_p1[:2]
+    new_p2 = new_p2[:2]
+    new_line = [new_p1,new_p2]
     return new_line
+
+def CreaseinImag(rot_mat,crease):
+    new_creases = copy.deepcopy(crease)
+    for i in range(len(crease)):
+        new_crease = LineRotation(rot_mat,crease[i])
+        new_creases[i] = new_crease
+    return new_creases
 
 def EdgeRotation(rot_mat,edge_dict):
     rot_edge = copy.deepcopy(edge_dict)
@@ -81,7 +90,7 @@ def decideOddEven(stack,fold,count):
     # if valley fold, even is dark
     light_facets = []
     dark_facets = []
-    print "count",count
+    # print "count",count
     if fold == "valley":
         for i in range(len(stack)):
             k = i + count
@@ -128,7 +137,69 @@ def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count):
     # cv2.destroyAllWindows()
     return canvas
 
+def drawline(img,pt1,pt2,color,thickness=3,style='dotted',gap=10):
+    dist =((pt1[0]-pt2[0])**2+(pt1[1]-pt2[1])**2)**.5
+    pts= []
+    for i in np.arange(0,dist,gap):
+        r=i/dist
+        x=int((pt1[0]*(1-r)+pt2[0]*r)+.5)
+        y=int((pt1[1]*(1-r)+pt2[1]*r)+.5)
+        p = (x,y)
+        pts.append(p)
 
+    if style=='dotted':
+        for p in pts:
+            cv2.circle(img,p,thickness,color,-1)
+    else:
+        s=pts[0]
+        e=pts[0]
+        i=0
+        for p in pts:
+            s=e
+            e=p
+            if i % 2==1:
+                cv2.line(img,s,e,color,thickness)
+            i+=1
+
+def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,feasible_crease,reflect=0):
+    rot_min_creases = CreaseinImag(rot_mat,min_crease)
+    rot_feasible_creases = CreaseinImag(rot_mat,feasible_crease)
+    rot_poly = PolygoninImag(rot_mat,polygon)
+    odd, even = decideOddEven(stack1,fold,count)
+    # print "odd",odd
+    # print "even",even
+    for i in range(len(stack1)):
+        for j in range(len(stack1[i])):
+            facet = stack1[i][j]
+            # print "poly",rot_poly[facet]
+            # print "facet",facet
+            cv2.polylines(canvas,[np.array(rot_poly[facet])],True,(61,139,110),thickness=8) #green:(61,139,110) pink:(139,58,98) gold:(76,129,139) purple:(139,102,139)
+            if facet in odd:
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(193,255,193)) #green:(193,255,193) pink:(255,181,197) gold:(139,236,255) purple:(255,187,255)
+            elif facet in even:
+                cv2.fillPoly(canvas,[np.array(rot_poly[facet])],(90,205,162)) #green:(90,205,162) pink:(205,96,144) gold:(112,190,205) purple:(205,150,205)
+    for i in range(len(rot_min_creases)):
+        p1 = rot_min_creases[i][0]
+        p2 = rot_min_creases[i][1]
+        drawline(canvas,p1,p2,(255,99,71))
+    for i in range(len(rot_feasible_creases)):
+        p1 = rot_feasible_creases[i][0]
+        p2 = rot_feasible_creases[i][1]
+        p1 = (p1[0],p1[1])
+        p2 = (p2[0],p2[1])
+        cv2.line(canvas,p1,p2,color=(255,99,71),thickness=7)
+    # cv2.imshow('poly', canvas)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    return canvas
+
+def drawOneFig(img):
+    title = "node"
+    plt.imshow(img)
+    plt.title(title,fontsize=12)
+    plt.xticks([])
+    plt.yticks([])
+    plt.show()
 # drawPolygon(polygen1,stack1,rot_mat)
 # img = drawPolygon(polygen1,stack1,canvas,rot_mat)
 

@@ -3,7 +3,8 @@ import numpy_indexed as npi
 from shapely.geometry import *
 import copy
 import numpy as np
-
+import visulization as vl
+import matplotlib.pyplot as plt
 # ##############plane
 # stack1 = [['1','2','3','4'],['5','6'],['7','8']]
 # #counterclock wise
@@ -86,9 +87,10 @@ def lineToFunction(line):
     c = line[1][0]*line[0][1] - line[0][0]*line[1][1]
     return a,b,c
 
-def ifLineColinear(line1,line2):
+def ifLineColinear1(line1,line2):
     '''
     input two lines, return if they are colinear
+    a) colinear b) has intersection
     '''
     axis1 = lineToAxis(line1)
     axis2 = lineToAxis(line2)
@@ -103,6 +105,22 @@ def ifLineColinear(line1,line2):
                 return 1
             else:
                 return 0
+    else:
+        return 0
+
+def ifLineColinear(line1,line2):
+    '''
+    input two lines, return if they are colinear
+    a) colinear b) has intersection
+    '''
+    axis1 = lineToAxis(line1)
+    axis2 = lineToAxis(line2)
+    if (axis1==axis2).all() or (axis1==(-axis2)).all():
+        is_meet = npi.intersection(line1,line2)
+        if len(is_meet) > 0:
+            return 1
+        else:
+            return 0
     else:
         return 0
 
@@ -139,17 +157,6 @@ def findAllCreases(stack,facet_crease):
                 creases.append(facet_crease[facet][k])
     return creases
 
-def findAllCreases1(stack,facet_crease):
-    creases = []
-    # print "stack",stack
-    for i in range(len(stack)):
-        facet = stack[i]
-        # print "facet",facet
-        # print "facet crease[facet]",facet_crease[facet]
-        for k in range(len(facet_crease[facet])):
-            creases.append(facet_crease[facet][k])
-            return creases
-
 def findNonRepetiveCreases(creases):
     #serach for non-repetitive creases
     #each crease will appear and only appear twice
@@ -169,6 +176,30 @@ def findNonRepetiveCreases(creases):
             else:
                 continue
     return crease
+
+def findMininalSetCrease1(crease):
+    #find linear creases, and combine them
+    min_crease = []
+    colinear_num = []
+    if len(crease) == 1:
+        min_crease = crease
+        return min_crease
+    for i in range(len(crease)):
+        line1 = crease[i]
+        for j in range(i+1,len(crease)):
+            line2 = crease[j]
+            if ifLineSame(line1,line2)==1:
+                continue
+            #combine linear creases
+            if ifLineColinear(line1,line2)==1:
+                min_crease.append(CombineLinearLines(line1,line2))
+                colinear_num.append(j)
+                colinear_num.append(i)
+                break
+            #if the line is not colinear with any other lines
+        if j == (len(crease)-1) and i not in colinear_num:
+            min_crease.append(line1)
+    return min_crease
 
 def findMininalSetCrease(crease):
     #find linear creases, and combine them
@@ -481,7 +512,7 @@ def reverseLineDirection(line):
     line[1] = tmp
     return line
 
-def ifReverseLineDirection(polygon,crease,root_facet='6'):
+def ifReverseLineDirection(polygon,crease,root_facet='4'):
     #determine if the direction of the crease needs to be reversed
     #if root_facet at the right of the crease, no need to reverse
     # if at the left, reverse line's direction to ensure the root_facet is always at base
@@ -526,7 +557,7 @@ def divideStack(crease,stack,polygon):
             flap.append(flap_tmp)
     return base,flap
 
-def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='6'):
+def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='4'):
     #input a crease set, return feasible flaps
     flaps = []
     count = 1
@@ -1351,6 +1382,180 @@ def generateNextLayerStates(state,adj_facets):
 
     return new_states
 
+def VisualNextLayerStates(state,adj_facets):
+    '''
+    input parent node state information, return next layer's children states
+    '''
+    new_states = []
+    #find minimal set of lines taht contain all creases
+    creases = findAllCreases(state["stack"],state["facet_crease"])
+    # print "creases",creases
+    crease = findNonRepetiveCreases(creases)
+    # print "crease",crease
+    min_crease = findMininalSetCrease(crease)
+    # print "min_creases",min_crease
+    #how to set(min_crease)
+    #find all feasible creases
+    feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
+    # print "feasible crease",feasible_crease
+    fe = copy.deepcopy(feasible_crease)
+    w = 450
+    h = 350
+    canvas = vl.init_canvas(w,h)
+    rot_mat = vl.rotationFromImg(w,h,0)
+    img = vl.drawPolygonwithCrease(state["polygen"],state["stack"],canvas,rot_mat,state["fold"],0,min_crease,fe)
+    #generate new states for each feasible crease
+    new_states=0
+    # for i in range(len(feasible_crease)):
+    #     state_tmp = {}
+    #     new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
+    #                                                                                                 state["facet_crease"],feasible_crease[i],
+    #                                                                                                 "+",state["graph_edge"],
+    #                                                                                                 state["crease_edge"],adj_facets)
+    #     state_tmp["stack"] = new_stack
+    #     state_tmp["polygen"] = new_polygen
+    #     state_tmp["facet_crease"] = new_creases
+    #     state_tmp["fold"] = "valley"
+    #     state_tmp["graph_edge"] = new_graph_edge
+    #     state_tmp["crease_edge"] = crease_edge
+    #     state_tmp["adjacent_facets"] = adj_facets
+    #
+    #     state_tmp0 = copy.deepcopy(state_tmp)
+    #     new_states.append(state_tmp0)
+    #
+    #     state_tmp = {}
+    #     new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
+    #                                                                                                 state["facet_crease"],feasible_crease[i],
+    #                                                                                                 "-",state["graph_edge"],
+    #                                                                                                 state["crease_edge"],adj_facets)
+    #     state_tmp["stack"] = new_stack
+    #     state_tmp["polygen"] = new_polygen
+    #     state_tmp["facet_crease"] = new_creases
+    #     state_tmp["fold"] = "mountain"
+    #     state_tmp["graph_edge"] = new_graph_edge
+    #     state_tmp["crease_edge"] = crease_edge
+    #     state_tmp["adjacent_facets"] = adj_facets
+    #     state_tmp0 = copy.deepcopy(state_tmp)
+    #     new_states.append(state_tmp0)
+    #
+    # reflec, crease_set_min, crease_set_max = ifReflectable(state)
+    # print "if reflectable?",ifReflectable(state)
+    # # print "stack",state["stack"]
+    # if reflec == 1:
+    #     # valley fold
+    #     state_tmp = {}
+    #     new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
+    #                                                                                                 state["facet_crease"],0,
+    #                                                                                                 "+",state["graph_edge"],
+    #                                                                                                 state["crease_edge"],adj_facets,
+    #                                                                                                 crease_sets=crease_set_max,reflect=1)
+    #     state_tmp["stack"] = new_stack
+    #     state_tmp["polygen"] = new_polygen
+    #     state_tmp["facet_crease"] = new_creases
+    #     state_tmp["fold"] = "valley"
+    #     state_tmp["graph_edge"] = new_graph_edge
+    #     state_tmp["crease_edge"] = crease_edge
+    #     state_tmp["adjacent_facets"] = adj_facets
+    #     state_tmp0 = copy.deepcopy(state_tmp)
+    #     new_states.append(state_tmp0)
+    #
+    # if reflec == 2:
+    #     # mountain fold
+    #     state_tmp = {}
+    #     new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
+    #                                                                                                 state["facet_crease"],0,
+    #                                                                                                 "-",state["graph_edge"],
+    #                                                                                                 state["crease_edge"],adj_facets,
+    #                                                                                                 crease_sets=crease_set_min,reflect=1)
+    #     state_tmp["stack"] = new_stack
+    #     state_tmp["polygen"] = new_polygen
+    #     state_tmp["facet_crease"] = new_creases
+    #     state_tmp["fold"] = "mountain"
+    #     state_tmp["graph_edge"] = new_graph_edge
+    #     state_tmp["crease_edge"] = crease_edge
+    #     state_tmp["adjacent_facets"] = adj_facets
+    #
+    #     state_tmp0 = copy.deepcopy(state_tmp)
+    #     new_states.append(state_tmp0)
+    #
+    # if reflec == 3:
+    #     # valley fold
+    #     state_tmp = {}
+    #     new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
+    #                                                                                                 state["facet_crease"],0,
+    #                                                                                                 "+",state["graph_edge"],
+    #                                                                                                 state["crease_edge"],adj_facets,
+    #                                                                                                 crease_sets=crease_set_max,reflect=1)
+    #     state_tmp["stack"] = new_stack
+    #     state_tmp["polygen"] = new_polygen
+    #     state_tmp["facet_crease"] = new_creases
+    #     state_tmp["fold"] = "valley"
+    #     state_tmp["graph_edge"] = new_graph_edge
+    #     state_tmp["crease_edge"] = crease_edge
+    #     state_tmp["adjacent_facets"] = adj_facets
+    #
+    #     state_tmp0 = copy.deepcopy(state_tmp)
+    #     new_states.append(state_tmp0)
+    #
+    #     # monutain fold
+    #     state_tmp = {}
+    #     new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
+    #                                                                                                 state["facet_crease"],0,
+    #                                                                                                 "-",state["graph_edge"],
+    #                                                                                                 state["crease_edge"],adj_facets,
+    #                                                                                                 crease_sets=crease_set_min,reflect=1)
+    #     state_tmp["stack"] = new_stack
+    #     state_tmp["polygen"] = new_polygen
+    #     state_tmp["facet_crease"] = new_creases
+    #     state_tmp["fold"] = "mountain"
+    #     state_tmp["graph_edge"] = new_graph_edge
+    #     state_tmp["crease_edge"] = crease_edge
+    #     state_tmp["adjacent_facets"] = adj_facets
+    #
+    #     state_tmp0 = copy.deepcopy(state_tmp)
+    #     new_states.append(state_tmp0)
+
+    return new_states,img
+
+# def visualState(state_dict,path,polygen2=polygen2,stack2=stack2):
+#     img_num = len(path) + 1
+#     print "img num",img_num
+#     row = 3
+#     if img_num % row == 0:
+#         column = int(img_num/3)
+#     else:
+#         column = int(img_num/3) + 1
+#     print "column",column
+#     # w = 350 #plane
+#     # h = 320 #plane
+#     # w = 250 #cup
+#     # h = 250 #cup
+#     # w = 300 #fig5
+#     # h = 300 #fig5
+#     w = 450
+#     h = 350
+#     imgs=[]
+#     count = 0
+#     canvas = vl.init_canvas(w,h)
+#     rot_mat = vl.rotationFromImg(w,h,0)
+#     img=vl.drawPolygon(polygen2,stack2,canvas,rot_mat,0,count=0)
+#     imgs.append(img)
+#     for i in range(len(path)):
+#         canvas = vl.init_canvas(w,h)
+#         rot_mat = vl.rotationFromImg(w,h,0)
+#         fold = state_dict[path[i]]["fold"]
+#         stack = state_dict[path[i]]["stack"]
+#         if i == 0:
+#             stack2 = state_dict[path[0]]["stack"]
+#         else:
+#             stack2 = state_dict[path[i-1]]["stack"]
+#         if fold == "mountain" and (len(stack2)-len(stack)) % 2 == 1:
+#             count = count + 1
+#
+#         img=vl.drawPolygon(state_dict[path[i]]["polygen"],stack,canvas,rot_mat,fold,count)
+#         imgs.append(img)
+#     vl.drawMultiFigs(imgs,column,row,img_num)
+#     plt.show()
 # crease_edge = {'8': [[[-75, 30], [0, 105]], [[-75, -45], [-75, 30]]],
 #                '5': [[[0, -105], [0, 105]], [[-75, 30], [0, 105]], [[-75, -105], [-75, 30]]],
 #                '4': [[[0, -105], [0, 105]]],
