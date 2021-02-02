@@ -155,7 +155,7 @@ def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count,reflec=0):
     # cv2.destroyAllWindows()
     return canvas
 
-def drawline(img,pt1,pt2,color,thickness=3,style='dotted',gap=10):
+def drawline(img,pt1,pt2,color,thickness=3,style='dotted',gap=8):
     dist =((pt1[0]-pt2[0])**2+(pt1[1]-pt2[1])**2)**.5
     pts= []
     for i in np.arange(0,dist,gap):
@@ -179,14 +179,17 @@ def drawline(img,pt1,pt2,color,thickness=3,style='dotted',gap=10):
                 cv2.line(img,s,e,color,thickness)
             i+=1
 
-def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,feasible_crease,crease_set=[],reflect=0):
+def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,feasible_crease,crease_set1=[],crease_set2=[],reflect=0):
     rot_min_creases = CreaseinImag(rot_mat,min_crease)
     rot_feasible_creases = CreaseinImag(rot_mat,feasible_crease)
     rot_poly = PolygoninImag(rot_mat,polygon)
-    rot_c_set = copy.deepcopy(crease_set)
-    if len(crease_set)!=0:
-        for i in range(len(crease_set)):
-            rot_c_set[i] = CreaseinImag(rot_mat,crease_set[i])
+    rot_c_set1 = copy.deepcopy(crease_set1)
+    print "c_set",rot_c_set1
+    if len(crease_set1)!=0:
+        rot_c_set1 = CreaseinImag(rot_mat,crease_set1)
+    rot_c_set2 = copy.deepcopy(crease_set2)
+    if len(crease_set2)!=0:
+        rot_c_set2 = CreaseinImag(rot_mat,crease_set2)
     odd, even = decideOddEven(stack1,fold,count)
     color11 = (139,58,98)
     color21 = (255,181,197)
@@ -221,6 +224,18 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
     for i in range(len(rot_feasible_creases)):
         p1 = rot_feasible_creases[i][0]
         p2 = rot_feasible_creases[i][1]
+        p1 = (p1[0],p1[1])
+        p2 = (p2[0],p2[1])
+        cv2.line(canvas,p1,p2,color=(255,99,71),thickness=7)
+    for i in range(len(rot_c_set1)):
+        p1 = rot_c_set1[i][0]
+        p2 = rot_c_set1[i][1]
+        p1 = (p1[0],p1[1])
+        p2 = (p2[0],p2[1])
+        cv2.line(canvas,p1,p2,color=(255,99,71),thickness=7) #blue(0,245,255)
+    for i in range(len(rot_c_set2)):
+        p1 = rot_c_set2[i][0]
+        p2 = rot_c_set2[i][1]
         p1 = (p1[0],p1[1])
         p2 = (p2[0],p2[1])
         cv2.line(canvas,p1,p2,color=(255,99,71),thickness=7)
@@ -266,7 +281,7 @@ def drawMultiFigsGraph(imgs,row):
         ax = plt.subplot(gs2[0,i-1])
         ax.imshow(imgs[i])
         title = "node" + str(i)
-        plt.title(title,fontsize=8)
+        plt.title(title,fontsize=12)
         plt.xticks([])
         plt.yticks([])
     plt.tight_layout()
