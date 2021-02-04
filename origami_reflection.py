@@ -1265,6 +1265,8 @@ def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
     #generate new count
     if sign == '-' and len(flap) % 2 == 1 and len(stack) != len(reversed_stack):
         count = count + 1
+
+
     #generate new crease angles
     new_crease_angle = newStateCreaseAngle(crease_angle,reversed_stack,count,flap)
     # if reversed_stack[0] == ['1', '2', '7', '8']:

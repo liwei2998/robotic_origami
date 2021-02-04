@@ -344,14 +344,19 @@ def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
     # visualize parent and its children
     imgs = []
     count = state_dict[parent_state]["count"]
+    print "count",count
     img = osg.VisualState(state_dict[parent_state],adjacent_facets,count)
     # vl.drawOneFig(img)
     imgs.append(img)
-    for node in state_graph[parent_state]:
-        count = state_dict[node]["count"]
-        img = osg.VisualState(state_dict[node],adjacent_facets,count)
-        imgs.append(img)
-    vl.drawMultiFigsGraph(imgs,len(state_graph[parent_state]))
+    if parent_state in state_graph.keys():
+        img_num = len(state_graph[parent_state])
+        for node in state_graph[parent_state]:
+            count = state_dict[node]["count"]
+            img = osg.VisualState(state_dict[node],adjacent_facets,count)
+            imgs.append(img)
+    else:
+        img_num = 1
+    vl.drawMultiFigsGraph(imgs,img_num)
     plt.show()
 
 def visualTree(state_graph,path,state_dict):
@@ -390,11 +395,11 @@ def visualTree(state_graph,path,state_dict):
 path,stack_step,state_dict = findPath()
 print "path",path
 # print "state4 angle",state_dict['state4']["crease_angle"]
-# print "state4 stack",state_dict['state4']['stack']
+print "state4 count",state_dict['state4']['count']
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
 # state_dict["state4"]["reflect"]=1
-# visualParentChildren(state_graph,"state8",state_dict,adjacent_facets)
+# visualParentChildren(state_graph,"state4",state_dict,adjacent_facets)
 # for i in range(len(path)):
 #     print "state dict",state_dict[path[i]]
 print "stack step",stack_step
