@@ -195,6 +195,29 @@ state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
 
+def ifTwoNodesSame(state_node1,state_node2):
+    # if the stacks are the same, then the two nodes are the same
+    stack1_tmp = state_node1["stack"]
+    stack2_tmp = state_node2["stack"]
+    if len(stack1_tmp) != len(stack2_tmp):
+        return 0
+    else:
+        for i in range(len(stack1_tmp)):
+            s1 = sorted(stack1_tmp[i])
+            s2 = sorted(stack2_tmp[i])
+            if s1 != s2:
+                return 0
+        return 1
+
+def ifNodeVisit(state_node,state_dict):
+    # test if the node is the same as node that has been visited
+    for state in state_dict.keys():
+
+        state_node1 = state_dict[state]
+        if ifTwoNodesSame(state_node1,state_node) == 1:
+            return 1
+    return 0
+
 def bfs(state_graph, src, tgt_stack):
     """Return the shortest path from the source (src) to the target (tgt) in the graph"""
 
@@ -208,22 +231,28 @@ def bfs(state_graph, src, tgt_stack):
     # #dynamic generate variable's names, using locals()
     # names = locals()
     a = 1
+    node_infertile = []
     while queue:
         a=a+1
         node = queue.popleft()
         # print "node",node
+        if node in node_infertile:
+            continue
         state_node = state_dict[node]
-
         # generate children states for this node
         children_states = osg.generateNextLayerStates(state_node,state1["adjacent_facets"],state1["crease_angle"])
         # print "children states",children_states
         if len(children_states) != 0:
             for i in range(len(children_states)):
+                if ifNodeVisit(children_states[i],state_dict) == 1:
+                    print "same stack1",children_states[i]['stack']
+                    node_infertile.append('state'+str(k))
                 #store each children states
                 state_dict["state"+str(k)] = children_states[i]
                 #add children states to state_graph
                 state_graph.setdefault(node,[]).append("state"+str(k))
                 k += 1
+
         # print "state graph",state_graph
 
         if node in state_graph.keys():
@@ -360,6 +389,8 @@ def visualTree(state_graph,path,state_dict):
 
 path,stack_step,state_dict = findPath()
 print "path",path
+# print "state4 angle",state_dict['state4']["crease_angle"]
+# print "state4 stack",state_dict['state4']['stack']
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
 # state_dict["state4"]["reflect"]=1
@@ -370,7 +401,7 @@ print "stack step",stack_step
 print "graph",state_graph
 imgs=visualTree(state_graph,path,state_dict)
 # vl.drawOneFig(imgs[9])
-# visualSteps(state_dict,path)
+visualSteps(state_dict,path)
 # for i in range(1,46):
 #     node = "state"+str(i)
 #     print "state dict",state_dict[node]["reflect"]
