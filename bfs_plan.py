@@ -142,14 +142,14 @@ adjacent_facets = {'1':['2','4'],
                    '6':['5','7'],
                    '7':['6','8'],
                    '8':['5','7']}
-crease_angle = {'1':{'2':'-','4':'+'},
-                '2':{'1':'+','3':'+'},
-                '3':{'2':'-','4':'+'},
+crease_angle = {'1':{'2':'+','4':'-'},
+                '2':{'1':'+','3':'-'},
+                '3':{'2':'-','4':'-'},
                 '4':{'1':'-','3':'-','5':'+'},
-                '5':{'4':'-','8':'-','6':'-'},
-                '6':{'5':'+','7':'-'},
-                '7':{'6':'+','8':'+'},
-                '8':{'7':'-','5':'+'}}
+                '5':{'4':'+','8':'-','6':'-'},
+                '6':{'5':'-','7':'-'},
+                '7':{'6':'-','8':'+'},
+                '8':{'7':'+','5':'-'}}
 # ################### fig7. cup
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
@@ -189,7 +189,8 @@ crease_angle = {'1':{'2':'-','4':'+'},
 # state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
-          "adjacent_facets":adjacent_facets,"fold":0,"reflect":0,"crease_angle":crease_angle}
+          "adjacent_facets":adjacent_facets,"fold":"valley","reflect":0,"crease_angle":crease_angle,
+          "count":0}
 
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
@@ -212,6 +213,7 @@ def bfs(state_graph, src, tgt_stack):
         node = queue.popleft()
         # print "node",node
         state_node = state_dict[node]
+
         # generate children states for this node
         children_states = osg.generateNextLayerStates(state_node,state1["adjacent_facets"],state1["crease_angle"])
         # print "children states",children_states
@@ -257,11 +259,7 @@ def bfs(state_graph, src, tgt_stack):
 ###### print "state_graph",state_graph["state175"]
 ###### print "state175",state_dict['state175']["stack"]
 # print "path",path
-# stack_step = []
-# for i in range(len(path)):
-#     step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
-#     stack_step.append(step_tmp)
-# print "stack step",stack_step
+
 #,polygen2=polygen2,stack2=stack2s
 def visualSteps(state_dict,path):
     img_num = len(path) #+ 1
@@ -314,72 +312,66 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['3'],['2'],['1'],
     return path,stack_step,state_dict
 
 def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
+    # visualize parent and its children
     imgs = []
-    img = osg.VisualState(state_dict[parent_state],adjacent_facets)
+    count = state_dict[parent_state]["count"]
+    img = osg.VisualState(state_dict[parent_state],adjacent_facets,count)
     # vl.drawOneFig(img)
     imgs.append(img)
     for node in state_graph[parent_state]:
-        img = osg.VisualState(state_dict[node],adjacent_facets)
+        count = state_dict[node]["count"]
+        img = osg.VisualState(state_dict[node],adjacent_facets,count)
         imgs.append(img)
     vl.drawMultiFigsGraph(imgs,len(state_graph[parent_state]))
     plt.show()
 
-
-def visualBfs(state_graph, src, tgt_stack,state_dict):
-    """Return the shortest path from the source (src) to the target (tgt) in the graph"""
-
-    if src in state_graph is False:
-        raise AttributeError("The source '%s' is not in the graph" % src)
-
-
-    parents = {src: None}
-    queue = deque([src])
-    count = 0
+def visualTree(state_graph,path,state_dict):
+    #visualize a tree
+    column = len(path)
+    row = [1]
+    src = ['state1']
     imgs = []
-    a = 1
-    while queue:
-        a=a+1
-        node = queue.popleft()
-        print "node",node
-        state_node = state_dict[node]
-        img,count = osg.VisualState(state_dict[node],state_dict[node]["adjacent_facets"],count=count)
-        imgs.append(img)
+    for i in range(column):
+        src_list_tmp = []
+        row_tmp = 0
+        for j in src:
+            # print "j",j
+            img = osg.VisualState(state_dict[j],state1["adjacent_facets"],state_dict[j]["count"])
+            img_tmp = copy.deepcopy(img)
+            imgs.append(img_tmp)
+            if j not in state_graph.keys():
+                continue
+            row_tmp = row_tmp + len(state_graph[j])
+            src_tmp = state_graph[j]
+            src_list_tmp.append(src_tmp)
+        src = [x for j in src_list_tmp for x in j]
+        row.append(row_tmp)
+    # print "columnnn",column
+    row = row[:column]
+    # print "rowwww",row
+    img_num = sum(row)
+    # print "imgss",len(imgs)
+    # print "img num",img_num
+    vl.drawTree(imgs,column,row,img_num)
+    plt.show()
+    return imgs
 
-        if node in state_graph.keys():
-            for neighbor in state_graph[node]:
-                if neighbor not in parents:
-                    parents[neighbor] = node
-                    queue.append(neighbor)
-                    # print "stack_dict[neighbor][stack]",state_dict[neighbor]["stack"]
-                    if state_dict[neighbor]["stack"] == tgt_stack:
-                        break
-        else:
-            if state_node["stack"] == tgt_stack:
-                break
 
-
-    path = [node]
-    while parents[node] is not None:
-        path.insert(0, parents[node])
-        node = parents[node]
-
-    return path,imgs
-
-def visualGraph(path,imgs):
-    imgs = []
 
 path,stack_step,state_dict = findPath()
 print "path",path
-# img = osg.VisualNextLayerStates(state_dict['state4'],adjacent_facets)
+# img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
-# visualParentChildren(state_graph,"state4",state_dict,adjacent_facets)
+# state_dict["state4"]["reflect"]=1
+# visualParentChildren(state_graph,"state8",state_dict,adjacent_facets)
 # for i in range(len(path)):
 #     print "state dict",state_dict[path[i]]
+print "stack step",stack_step
 print "graph",state_graph
-
-path1,imgs = visualBfs(state_graph,"state1",[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']],state_dict)
-
+imgs=visualTree(state_graph,path,state_dict)
+# vl.drawOneFig(imgs[9])
 # visualSteps(state_dict,path)
-
-# print "state dict",state_dict['state2']
+# for i in range(1,46):
+#     node = "state"+str(i)
+#     print "state dict",state_dict[node]["reflect"]
 # print "path",path

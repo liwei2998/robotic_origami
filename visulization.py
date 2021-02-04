@@ -95,20 +95,13 @@ def decideOddEven(stack,fold,count):
     light_facets = []
     dark_facets = []
     # print "count",count
-    if fold == "valley":
+    if fold == "valley" or fold == "mountain":
         for i in range(len(stack)):
             k = i + count
             if k % 2 == 1:
                 light_facets.append(stack[i])
             elif k % 2 == 0:
                 dark_facets.append(stack[i])
-    if fold == "mountain":
-        for i in range(len(stack)):
-            k = i + count
-            if k % 2 == 0:
-                dark_facets.append(stack[i])
-            elif k % 2 == 1:
-                light_facets.append(stack[i])
     if fold == 0:
         for i in range(len(stack)):
             if i % 2 == 0:
@@ -155,7 +148,7 @@ def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count,reflec=0):
     # cv2.destroyAllWindows()
     return canvas
 
-def drawline(img,pt1,pt2,color,thickness=3,style='dotted',gap=8):
+def drawline(img,pt1,pt2,color,thickness=5,style='dotted',gap=22):
     dist =((pt1[0]-pt2[0])**2+(pt1[1]-pt2[1])**2)**.5
     pts= []
     for i in np.arange(0,dist,gap):
@@ -184,7 +177,7 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
     rot_feasible_creases = CreaseinImag(rot_mat,feasible_crease)
     rot_poly = PolygoninImag(rot_mat,polygon)
     rot_c_set1 = copy.deepcopy(crease_set1)
-    print "c_set",rot_c_set1
+    # print "c_set",rot_c_set1
     if len(crease_set1)!=0:
         rot_c_set1 = CreaseinImag(rot_mat,crease_set1)
     rot_c_set2 = copy.deepcopy(crease_set2)
@@ -233,12 +226,14 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
         p1 = (p1[0],p1[1])
         p2 = (p2[0],p2[1])
         cv2.line(canvas,p1,p2,color=(255,99,71),thickness=7) #blue(0,245,255)
+        # drawline(canvas,p1,p2,(255,99,71))
     for i in range(len(rot_c_set2)):
         p1 = rot_c_set2[i][0]
         p2 = rot_c_set2[i][1]
         p1 = (p1[0],p1[1])
         p2 = (p2[0],p2[1])
         cv2.line(canvas,p1,p2,color=(255,99,71),thickness=7)
+        # drawline(canvas,p1,p2,(255,99,71))
     # cv2.imshow('poly', canvas)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
@@ -261,10 +256,10 @@ def drawMultiFigs(imgs,column,row,img_num):
             # print "index",index
             if index >= img_num:
                 break
-            title = "step" + str(index+1)
+            # title = "step" + str(index+1)
             plt.subplot(column,row,index+1)
             plt.imshow(imgs[index])
-            plt.title(title,fontsize=12) #,fontweight='bold'
+            # plt.title(title,fontsize=12) #,fontweight='bold'
             plt.xticks([])
             plt.yticks([])
 
@@ -284,4 +279,44 @@ def drawMultiFigsGraph(imgs,row):
         plt.title(title,fontsize=12)
         plt.xticks([])
         plt.yticks([])
+    plt.tight_layout()
+
+
+def drawTree(imgs,column,row,img_num):
+    gs0 = gridspec.GridSpec(column,1)
+    gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
+    gs2 = gridspec.GridSpecFromSubplotSpec(1,row[1],subplot_spec=gs0[1])
+    gs3 = gridspec.GridSpecFromSubplotSpec(1,row[2],subplot_spec=gs0[2])
+    gs4 = gridspec.GridSpecFromSubplotSpec(1,row[3],subplot_spec=gs0[3])
+    gs5 = gridspec.GridSpecFromSubplotSpec(1,row[4],subplot_spec=gs0[4])
+    gs6 = gridspec.GridSpecFromSubplotSpec(1,row[5],subplot_spec=gs0[5])
+    ax1 = plt.subplot(gs1[0,1])
+    ax1.imshow(imgs[0])
+    # plt.title("parent node",fontsize=12)
+    plt.xticks([])
+    plt.yticks([])
+    num = 1
+    for k in range(1,len(row)):
+        for i in range(1,row[k]+1):
+            if k == 1:
+                ax = plt.subplot(gs2[0,i-1])
+            elif k == 2:
+                ax = plt.subplot(gs3[0,i-1])
+            elif k == 3:
+                ax = plt.subplot(gs4[0,i-1])
+            elif k == 4:
+                ax = plt.subplot(gs5[0,i-1])
+            elif k == 5:
+                ax = plt.subplot(gs6[0,i-1])
+            ax.imshow(imgs[num])
+            num = num + 1
+            # title = "node" + str(i)
+            # plt.title(title,fontsize=12)
+            plt.xticks([])
+            plt.yticks([])
+
+        # title = "node" + str(i)
+        # plt.title(title,fontsize=12)
+        # plt.xticks([])
+        # plt.yticks([])
     plt.tight_layout()

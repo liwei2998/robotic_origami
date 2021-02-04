@@ -5,6 +5,7 @@ import copy
 import numpy as np
 import visulization as vl
 import matplotlib.pyplot as plt
+from compiler.ast import flatten
 # ##############plane
 # stack1 = [['1','2','3','4'],['5','6'],['7','8']]
 # #counterclock wise
@@ -1176,12 +1177,53 @@ def reverseStack(base,flap,crease,polygen,sign):
 # crease_edge = reverseCreaseEdge(reflect_crease["max"][0],flap,crease_edge)
 # crease_edge = findCreaseEdge(new_edges,crease_edge)
 # print "crease edge",crease_edge
+def reverseSign(sign):
+    if sign == '-':
+        new_sign = '+'
+    elif sign == '+':
+        new_sign = '-'
+    return new_sign
 
-def generateNextStateInformation(stack,polygen,facet_crease,crease,sign,graph_edge,crease_edge,adj_facets,crease_sets=0,reflect=0):
+def decideOddEven(stack,count):
+    #return odd and even facets, used for determine new crease angles
+    odd_facets = []
+    even_facets = []
+    # print "count",count
+    for i in range(len(stack)):
+        k = i + count
+        if k % 2 == 1:
+            odd_facets.append(stack[i])
+        elif k % 2 == 0:
+            even_facets.append(stack[i])
+
+    odd_facets = flatten(odd_facets)
+    even_facets = flatten(even_facets)
+    return odd_facets,even_facets
+
+def newStateCreaseAngle(crease_angle,stack,count):
+    #input new stack info, return new crease angle
+    odd,even = decideOddEven(stack,count)
+    for facet in odd:
+        values = crease_angle[facet]
+        for key in values.keys():
+            if key in odd:
+                values[key] = reverseSign(values[key])
+    return crease_angle
+
+def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
     '''
     Given a feasible crease fold, previous stack and polygen and facet_crease information,
     return new stack and polygen and facet_crease information.
     '''
+    stack = state["stack"]
+    polygen = state["polygen"]
+    crease_edge = state["crease_edge"]
+    facet_crease = state["facet_crease"]
+    adj_facets = state["adjacent_facets"]
+    graph_edge = state["graph_edge"]
+    count = state["count"]
+    crease_angle = state["crease_angle"]
+
     if reflect == 0:
         #search for base and flap according to this crease
         base,flap = divideStack(crease,stack,polygen)
@@ -1208,6 +1250,11 @@ def generateNextStateInformation(stack,polygen,facet_crease,crease,sign,graph_ed
     #generate new stack
     reversed_stack = reverseStack(base,flap,crease,polygen,sign)
     # print "reversed stack", reversed_stack
+    #generate new count
+    if sign == '-' and len(flap) % 2 == 1 and len(stack) != len(reversed_stack):
+        count = count + 1
+    #generate new crease angles
+    new_crease_angle = newStateCreaseAngle(crease_angle,reversed_stack,count)
     #generate new polygen
     reversed_polygen = reversePolygen(flap,crease,polygen)
     # print "reversed polygen",reversed_polygen
@@ -1227,7 +1274,7 @@ def generateNextStateInformation(stack,polygen,facet_crease,crease,sign,graph_ed
     crease_edge = reverseCreaseEdge(crease,flap,crease_edge)
     crease_edge = findCreaseEdge(new_edges,crease_edge)
     # print "crease edge",crease_edge
-    return reversed_stack,reversed_polygen,new_crease,new_graph_edge,crease_edge
+    return reversed_stack,count,new_crease_angle,reversed_polygen,new_crease,new_graph_edge,crease_edge
 
 def ifReflectable(state):
     # determine if this state can be reflection folded
@@ -1364,7 +1411,7 @@ def findShortCreaseinLongCrease(facet_crease,long_crease):
             if ifLineColinear(long_crease,crease) == 1:
                 return crease
 
-def determineSign(facet_crease,long_crease,adj_facets,polygon,base,crease_angle):
+def determineSign(facet_crease,long_crease,adj_facets,polygon,base,crease_angle,reflec=0,h=0):
     #determine the sign of this long crease
 
     short_crease = findShortCreaseinLongCrease(facet_crease,long_crease)
@@ -1372,12 +1419,22 @@ def determineSign(facet_crease,long_crease,adj_facets,polygon,base,crease_angle)
     same_facets = findSameCreaseFacets(facet_crease,short_crease,adj_facets,polygon)
     # print "same_facets",same_facets
     #determine the root facet
+    base1 = copy.deepcopy(base)
+    # print "base",base
     base = [x for j in base for x in j]
     # print "base",base
     count = 0
+    num = len(same_facets)
     for i in range(len(same_facets)):
         facets_pair = same_facets[i]
         # print "pair",same_facets[i]
+        if reflec == 1:
+            num = 0
+            for i in range(len(same_facets)):
+                pair_tmp = same_facets[i]
+                if pair_tmp[0] in base1[h] or pair_tmp[1] in base1[h]:
+                    num =num +1
+                    facets_pair = pair_tmp
         if facets_pair[0] in base:
             root_facet = facets_pair[0]
             other_facet = facets_pair[1]
@@ -1388,6 +1445,7 @@ def determineSign(facet_crease,long_crease,adj_facets,polygon,base,crease_angle)
         # print "other",other_facet
         # print "angle",crease_angle
         sign_tmp = crease_angle[root_facet][other_facet]
+        # print "sign tmp",sign_tmp
         if sign_tmp == '+':
             tmp = 1
         elif sign_tmp == '-':
@@ -1395,7 +1453,7 @@ def determineSign(facet_crease,long_crease,adj_facets,polygon,base,crease_angle)
         count = count + tmp
     if count == 0:
         sign = '-'
-    elif count == len(same_facets):
+    elif count == num:
         sign = '+'
     else:
         sign = 'n'
@@ -1411,7 +1469,6 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
     # print "creases",creases
     crease = findNonRepetiveCreases(creases)
     # print "crease",crease
-
     min_crease = findMininalSetCrease(crease)
     # print "min_creases",min_crease
     #how to set(min_crease)
@@ -1419,11 +1476,14 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
     feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
     # print "feasible crease",feasible_crease
     # print "stack",state["stack"]
+    crease_angle = copy.deepcopy(state["crease_angle"])
+    # crease_angle = copy.deepcopy(crease_angle)
     #generate new states for each feasible crease
     for i in range(len(feasible_crease)):
         base,_ = divideStack(feasible_crease[i],state['stack'],state['polygen'])
-        sign = determineSign(state["facet_crease"],feasible_crease[i],adj_facets,state["polygen"],base,state["crease_angle"])
+        sign = determineSign(state["facet_crease"],feasible_crease[i],adj_facets,state["polygen"],base,crease_angle)
         state_tmp = {}
+        # print "sign",sign
         if sign == 'n':
             continue
         elif sign == '+':
@@ -1431,11 +1491,11 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         elif sign == '-':
             state_tmp["fold"] = "mountain"
 
-        new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
-                                                                                                    state["facet_crease"],feasible_crease[i],
-                                                                                                    sign,state["graph_edge"],
-                                                                                                    state["crease_edge"],adj_facets)
+        new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state,feasible_crease[i],
+                                                                                                                           sign)
         state_tmp["stack"] = new_stack
+        state_tmp["count"] = count
+        state_tmp["crease_angle"] = new_crease_angle
         state_tmp["polygen"] = new_polygen
         state_tmp["facet_crease"] = new_creases
 
@@ -1443,7 +1503,9 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         state_tmp["crease_edge"] = crease_edge
         state_tmp["adjacent_facets"] = adj_facets
         state_tmp["reflect"] = 0
-        state_tmp["crease_angle"] = crease_angle
+        # print "count",count
+        # print " crease angle",new_crease_angle
+
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
 
@@ -1457,13 +1519,11 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         h = len(stack) - 1
         stack_info = divideReflectStack(crease_set_max,h,stack,state['polygen'],state['crease_edge'])
         base = stack_info["base"]
-        sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,state["crease_angle"])
+        sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,crease_angle,reflec=1,h=h)
         if sign == '+':
-            new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
-                                                                                                        state["facet_crease"],0,
-                                                                                                        "+",state["graph_edge"],
-                                                                                                        state["crease_edge"],adj_facets,
-                                                                                                        crease_sets=crease_set_max,reflect=1)
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state,0,"+",
+                                                                                                                               crease_sets=crease_set_max,
+                                                                                                                               reflect=1)
             state_tmp["stack"] = new_stack
             state_tmp["polygen"] = new_polygen
             state_tmp["facet_crease"] = new_creases
@@ -1472,9 +1532,11 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["crease_edge"] = crease_edge
             state_tmp["adjacent_facets"] = adj_facets
             state_tmp["reflect"] = 1
-            state_tmp["crease_angle"] = crease_angle
+            state_tmp["count"] = count
+            state_tmp["crease_angle"] = new_crease_angle
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
+            # print "reflec1"
 
     if reflec == 2:
         # mountain fold
@@ -1483,13 +1545,11 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         h = 0
         stack_info = divideReflectStack(crease_set_min,h,stack,state['polygen'],state['crease_edge'])
         base = stack_info["base"]
-        sign = determineSign(state["facet_crease"],crease_set_min[0],adj_facets,state["polygen"],base,state["crease_angle"])
+        sign = determineSign(state["facet_crease"],crease_set_min[0],adj_facets,state["polygen"],base,crease_angle,reflec=1,h=h)
         if sign == '-':
-            new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
-                                                                                                        state["facet_crease"],0,
-                                                                                                        "-",state["graph_edge"],
-                                                                                                        state["crease_edge"],adj_facets,
-                                                                                                        crease_sets=crease_set_min,reflect=1)
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state,0,"-",
+                                                                                                                               crease_sets=crease_set_min,
+                                                                                                                               reflect=1)
             state_tmp["stack"] = new_stack
             state_tmp["polygen"] = new_polygen
             state_tmp["facet_crease"] = new_creases
@@ -1498,11 +1558,13 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["crease_edge"] = crease_edge
             state_tmp["adjacent_facets"] = adj_facets
             state_tmp["reflect"] = 1
-            state_tmp["crease_angle"] = crease_angle
+            state_tmp["count"] = count
+            state_tmp["crease_angle"] = new_crease_angle
 
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
 
+            # print "reflec2"
     if reflec == 3:
         # valley fold
         state_tmp = {}
@@ -1510,13 +1572,12 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         h = len(stack) - 1
         stack_info = divideReflectStack(crease_set_max,h,stack,state['polygen'],state['crease_edge'])
         base = stack_info["base"]
-        sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,state["crease_angle"])
+        sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,crease_angle,reflec=1,h=h)
+        # print "sign31",sign
         if sign == '+':
-            new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
-                                                                                                        state["facet_crease"],0,
-                                                                                                        "+",state["graph_edge"],
-                                                                                                        state["crease_edge"],adj_facets,
-                                                                                                        crease_sets=crease_set_max,reflect=1)
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state,0,"+",
+                                                                                                                               crease_sets=crease_set_max,
+                                                                                                                               reflect=1)
             state_tmp["stack"] = new_stack
             state_tmp["polygen"] = new_polygen
             state_tmp["facet_crease"] = new_creases
@@ -1525,9 +1586,11 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["crease_edge"] = crease_edge
             state_tmp["adjacent_facets"] = adj_facets
             state_tmp["reflect"] = 1
-            state_tmp["crease_angle"] = crease_angle
+            state_tmp["count"] = count
+            state_tmp["crease_angle"] = new_crease_angle
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
+            # print "reflec31"
 
         # mountain fold
         state_tmp = {}
@@ -1535,13 +1598,12 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         h = 0
         stack_info = divideReflectStack(crease_set_min,h,stack,state['polygen'],state['crease_edge'])
         base = stack_info["base"]
-        sign = determineSign(state["facet_crease"],crease_set_min[0],adj_facets,state["polygen"],base,state["crease_angle"])
+        sign = determineSign(state["facet_crease"],crease_set_min[0],adj_facets,state["polygen"],base,crease_angle,reflec=1,h=h)
+        # print "sign32",sign
         if sign == '-':
-            new_stack,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state["stack"],state["polygen"],
-                                                                                                        state["facet_crease"],0,
-                                                                                                        "-",state["graph_edge"],
-                                                                                                        state["crease_edge"],adj_facets,
-                                                                                                        crease_sets=crease_set_min,reflect=1)
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge = generateNextStateInformation(state,0,"-",
+                                                                                                        crease_sets=crease_set_min,
+                                                                                                        reflect=1)
             state_tmp["stack"] = new_stack
             state_tmp["polygen"] = new_polygen
             state_tmp["facet_crease"] = new_creases
@@ -1550,23 +1612,22 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["crease_edge"] = crease_edge
             state_tmp["adjacent_facets"] = adj_facets
             state_tmp["reflect"] = 1
-            state_tmp["crease_angle"] = crease_angle
+            state_tmp["count"] = count
+            state_tmp["crease_angle"] = new_crease_angle
 
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
+            # print "reflec32"
 
     return new_states
 
 def VisualState(state,adj_facets,count=0,w=350,h=320):
     '''
-    input parent node state information, return next layer's children states
+    input a state, visuliaze this state
     '''
     #find minimal set of lines taht contain all creases
     creases = findAllCreases(state["stack"],state["facet_crease"])
     crease = findNonRepetiveCreases(creases)
-
-    # for i in range(len(crease)):
-    #     crease[i] = ifReverseLineDirection(state['polygen'],crease[i])
 
     min_crease = findMininalSetCrease(crease)
     # print "min_creases",min_crease
@@ -1581,12 +1642,10 @@ def VisualState(state,adj_facets,count=0,w=350,h=320):
     ref = state["reflect"]
     canvas = vl.init_canvas(w,h,reflec=ref)
     rot_mat = vl.rotationFromImg(w,h,0)
-
+    fe = []
     if len(feasible_crease)!=0:
         fe = copy.deepcopy(feasible_crease)
-        base,flap = divideStack(fe[0],state['stack'],state['polygen'])
-        if len(flap) % 2 == 1 and fold == "mountain":
-            count = count + 1
+
     if reflec==1:
         c_set1 = copy.deepcopy(crease_set_max)
         c_set2 = []
@@ -1599,13 +1658,13 @@ def VisualState(state,adj_facets,count=0,w=350,h=320):
     elif reflec==0:
         c_set1 = []
         c_set2 = []
-
+    # print "ref",ref
     img = vl.drawPolygonwithCrease(state["polygen"],state["stack"],canvas,
                                    rot_mat,fold,count,min_crease,fe,
                                    crease_set1=c_set1,crease_set2=c_set2,
                                    reflect=ref)
 
-    return img,count
+    return img
 
 # def visualState(state_dict,path,polygen2=polygen2,stack2=stack2):
 #     img_num = len(path) + 1
