@@ -9,7 +9,7 @@ import copy
 import visulization as vl
 import math
 import matplotlib.pyplot as plt
-
+import time
 #################### simple hat
 # # rot = [[0,-1,0],[1,0,0],[0,0,1]]
 # stack1 = [['1','2','3','4','5','6','7','8']]
@@ -236,16 +236,20 @@ def bfs(state_graph, src, tgt_stack):
         a=a+1
         node = queue.popleft()
         # print "node",node
-        if node in node_infertile:
-            continue
+        # if node in node_infertile:
+        #     continue
         state_node = state_dict[node]
+        # if node == "state15" or node == "state19" or node == "state20" or node == "state21" or node == "state27" or node == "state28":
+        #     state_node['crease_angle']['8']['7'] = '+'
+        #     state_node['crease_angle']['7']['8'] = '+'
         # generate children states for this node
         children_states = osg.generateNextLayerStates(state_node,state1["adjacent_facets"],state1["crease_angle"])
         # print "children states",children_states
         if len(children_states) != 0:
             for i in range(len(children_states)):
                 if ifNodeVisit(children_states[i],state_dict) == 1:
-                    print "same stack1",children_states[i]['stack']
+                    # print "same stack1",children_states[i]['stack']
+                    continue
                     node_infertile.append('state'+str(k))
                 #store each children states
                 state_dict["state"+str(k)] = children_states[i]
@@ -331,6 +335,7 @@ def visualSteps(state_dict,path):
     plt.show()
 
 def findPath(state_graph=state_graph,src="state1",goal_stack=[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']]):
+    start_time = time.time()
     path = bfs(state_graph,src,goal_stack)
     # print "path",path
     stack_step = []
@@ -338,6 +343,8 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['3'],['2'],['1'],
         step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
         stack_step.append(step_tmp)
     # print "stack step",stack_step
+    total_time = time.time() - start_time
+    print "###########################search time: ",total_time
     return path,stack_step,state_dict
 
 def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
@@ -386,7 +393,7 @@ def visualTree(state_graph,path,state_dict):
     img_num = sum(row)
     # print "imgss",len(imgs)
     # print "img num",img_num
-    vl.drawTree(imgs,column,row,img_num)
+    vl.drawTree(imgs,column,row,img_num+1)
     plt.show()
     return imgs
 
@@ -395,18 +402,19 @@ def visualTree(state_graph,path,state_dict):
 path,stack_step,state_dict = findPath()
 print "path",path
 # print "state4 angle",state_dict['state4']["crease_angle"]
-print "state4 count",state_dict['state4']['count']
+# print "state7 count",state_dict['state7']['count']
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
-# state_dict["state4"]["reflect"]=1
-# visualParentChildren(state_graph,"state4",state_dict,adjacent_facets)
+print "crease angle7",state_dict['state7']['crease_angle']
+print "crease angle",state_dict['state15']['crease_angle']
+# visualParentChildren(state_graph,"state7",state_dict,adjacent_facets)
 # for i in range(len(path)):
 #     print "state dict",state_dict[path[i]]
 print "stack step",stack_step
 print "graph",state_graph
 imgs=visualTree(state_graph,path,state_dict)
 # vl.drawOneFig(imgs[9])
-visualSteps(state_dict,path)
+# visualSteps(state_dict,path)
 # for i in range(1,46):
 #     node = "state"+str(i)
 #     print "state dict",state_dict[node]["reflect"]

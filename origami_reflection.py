@@ -1220,6 +1220,15 @@ def newStateCreaseAngle(crease_angle,stack,count,flap):
                 # print "new sign",values[key]
     return new_crease_angle
 
+def ifAnyFacetSame(stack1,stack2):
+    # return if any elements are the same in stack1, 2
+    # return 1 if yes
+    stack1 = sorted(stack1)
+    stack2 = sorted(stack2)
+    for i in stack1:
+        if i in stack2:
+            return 1
+    return 0
 
 def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
     '''
@@ -1249,7 +1258,7 @@ def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
 
         #generate new stack info
         stack_info = divideReflectStack(crease_sets,h,stack,polygen,crease_edge)
-        print "stack info crease",stack_info["crease_set"]
+        # print "stack info crease",stack_info["crease_set"]
         base = stack_info["base"]
         flap = stack_info["flap"]
         crease_set = stack_info["crease_set"]
@@ -1264,6 +1273,8 @@ def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
 
     #generate new count
     if sign == '-' and len(flap) % 2 == 1 and len(stack) != len(reversed_stack):
+        count = count + 1
+    elif sign == '+' and count % 2 == 1 and (findLayerofFacet(base[0][0],stack)+count) % 2 == 0 and len(flap) % 2 == 0:
         count = count + 1
 
 
@@ -1509,6 +1520,8 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
     #generate new states for each feasible crease
     for i in range(len(feasible_crease)):
         base,_ = divideStack(feasible_crease[i],state['stack'],state['polygen'])
+        # if state['stack'] == [['1','2','7','8'],['3','4','5','6']]:
+        #     print "****************************************************************"
         # print "crease",feasible_crease[i]
         sign = determineSign(state["facet_crease"],feasible_crease[i],adj_facets,state["polygen"],base,crease_angle)
         state_tmp = {}
@@ -1604,7 +1617,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         h = len(stack) - 1
         stack_info = divideReflectStack(crease_set_max,h,stack,state['polygen'],state['crease_edge'])
         base = stack_info["base"]
-        print "#######################################################"
+        # print "#######################################################"
         sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,crease_angle,reflec=1,h=h)
         # print "sign31",sign
         if sign == '+':

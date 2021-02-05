@@ -292,10 +292,15 @@ def drawTree(imgs,column,row,img_num):
     gs6 = gridspec.GridSpecFromSubplotSpec(1,row[5],subplot_spec=gs0[5])
     ax1 = plt.subplot(gs1[0,1])
     ax1.imshow(imgs[0])
-    # plt.title("parent node",fontsize=12)
+    plt.title("node1",fontsize=8)
     plt.xticks([])
     plt.yticks([])
     num = 1
+    # gs2.update(wspace=0,hspace=0)
+    # gs3.update(wspace=0,hspace=0)
+    # gs4.update(wspace=0,hspace=0)
+    # gs5.update(wspace=0,hspace=0)
+    # gs6.update(wspace=0,hspace=0)
     for k in range(1,len(row)):
         for i in range(1,row[k]+1):
             if k == 1:
@@ -310,10 +315,11 @@ def drawTree(imgs,column,row,img_num):
                 ax = plt.subplot(gs6[0,i-1])
             ax.imshow(imgs[num])
             num = num + 1
-            # title = "node" + str(i)
-            # plt.title(title,fontsize=12)
+            title = "node" + str(num)
+            plt.title(title,fontsize=8)
             plt.xticks([])
             plt.yticks([])
+
 
         # title = "node" + str(i)
         # plt.title(title,fontsize=12)
