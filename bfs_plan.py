@@ -4,11 +4,93 @@ Input consists of a simple graph of { node: [list of neighbors] } plus a source 
 """
 
 from collections import deque
-import origami_state_generation as osg
+import origami_reflection as osg
 import copy
 import visulization as vl
 import math
 import matplotlib.pyplot as plt
+import time
+#################### simple hat
+# # rot = [[0,-1,0],[1,0,0],[0,0,1]]
+# stack1 = [['1','2','3','4','5','6','7','8']]
+# #counterclock wise
+# polygen1 = {"1":[[-105,105],[105,105],[105,150],[-105,150]],
+#             "2":[[0,0],[105,105],[-105,105]],
+#             "3":[[0,0],[-105,105],[-105,0]],
+#             "4":[[0,0],[105,0],[105,105]],
+#             "5":[[0,0],[-105,0],[-105,-105]],
+#             "6":[[0,0],[-105,-105],[105,-105]],
+#             "7":[[0,0],[105,-105],[105,0]],
+#             "8":[[-105,-105],[-105,-150],[105,-150],[105,-105]]
+#             }
+# facets1 = {"1":[[[-105,105],[105,105]]],
+#            "2":[[[0,0],[105,105]],[[105,105],[-105,105]],[[-105,105],[0,0]]],
+#            "3":[[[0,0],[-105,105]],[[-105,0],[0,0]]],
+#            "4":[[[0,0],[105,0]],[[105,105],[0,0]]],
+#            "5":[[[0,0],[-105,0]],[[-105,-105],[0,0]]],
+#            "6":[[[0,0],[-105,-105]],[[-105,-105],[105,-105]],[[105,-105],[0,0]]],
+#            "7":[[[0,0],[105,-105]],[[105,0],[0,0]]],
+#            "8":[[[105,-105],[-105,-105]]]
+#            }
+# graph_edge = {"1":[[[105,105],[105,150]],[[105,150],[-105,150]],[[-105,150],[-105,105]]],
+#               # "2":[[[-150,30],[-150,-45]]],
+#               "3":[[[-105,105],[-105,0]]],
+#               "4":[[[105,0],[105,105]]],
+#               "5":[[[-105,0],[-105,-105]]],
+#               # "6":[[[150,-105],[150,-45]],[[75,-105],[150,-105]]],
+#               "7":[[[105,-105],[105,0]]],
+#               "8":[[[-105,-105],[-105,-150]],[[-105,-150],[105,-150]],[[105,-150],[105,-105]]]}
+# crease_edge = {}
+# adjacent_facets = {'1':['2'],
+#                    '2':['1','3','4'],
+#                    '3':['2','5'],
+#                    '4':['2','7'],
+#                    '5':['3','6'],
+#                    '6':['5','7','8'],
+#                    '7':['6','4'],
+#                    '8':['6']}
+# ##############plane
+# stack1 = [['1','2','3','4'],['5','6','7','8']]
+# #counterclock wise
+# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-150,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "6":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "7":[[-75,30],[-150,30],[-150,-45]],
+#             "8":[[0,105],[-150,105],[-150,30],[-75,30]]
+#             }
+# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
+#            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
+#            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "4":[[[-75,30],[-75,-105]],[[0,105],[-75,30]]],
+#            "5":[[[-75,30],[-75,-105]],[[0,105],[-75,30]]],
+#            "6":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "7":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
+#            "8":[[[-150,30],[-75,30]],[[-75,30],[0,105]]]
+#            }
+#
+# graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
+#               "2":[[[-150,30],[-150,-45]]],
+#               "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
+#               "4":[[[-75,-105],[0,-105]],[[0,-105],[0,105]]],
+#               "5":[[[-75,-105],[0,-105]],[[0,-105],[0,105]]],
+#               "6":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
+#               "7":[[[-150,30],[-150,-45]]],
+#               "8":[[[-150,30],[-150,105]],[[-150,105],[0,105]]]}
+# crease_edge={'5': [[[0,-105],[0,105]]],
+#              # '7': [[[-75, 30], [-150, -45]]],
+#              # '6': [[[-75, 30], [-150, -45]]],
+#              '4': [[[0,-105], [0,105]]]}
+# adjacent_facets = {'1':['2','4'],
+#                    '2':['1','3'],
+#                    '3':['2','4'],
+#                    '4':['1','3','5'],
+#                    '5':['4','6','8'],
+#                    '6':['5','7'],
+#                    '7':['6','8'],
+#                    '8':['5','7']}
 ################## fig.1 simple folds
 # facets1 = {"1":[[[100,100],[0,0]],[[0,0],[-100,100]]],
 #           "2":[[[100,100],[0,0]],[[0,0],[100,-100]]],
@@ -21,6 +103,8 @@ import matplotlib.pyplot as plt
 #             "4":[[0,0],[-100,-100],[-100,100]]}
 # stack1 = [["1","2","3","4"]]
 #################### fig.7 plane
+# global stack2
+# global polygen2
 stack1 = [['1','2','3','4','5','6','7','8']]
 #counterclock wise
 polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
@@ -41,7 +125,40 @@ facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
            "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
            "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
            }
-################### fig7. cup
+graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
+              "2":[[[-150,30],[-150,-45]]],
+              "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
+              "4":[[[-75,-105],[0,-105]]],
+              "5":[[[0,-105],[75,-105]]],
+              "6":[[[150,-105],[150,-45]],[[75,-105],[150,-105]]],
+              "7":[[[150,-45],[150,30]]],
+              "8":[[[150,30],[150,105]],[[150,105],[0,105]]]}
+crease_edge = {}
+adjacent_facets = {'1':['2','4'],
+                   '2':['1','3'],
+                   '3':['2','4'],
+                   '4':['1','3','5'],
+                   '5':['4','6','8'],
+                   '6':['5','7'],
+                   '7':['6','8'],
+                   '8':['5','7']}
+crease_angle = {'1':{'2':'-','4':'-'},
+                '2':{'1':'-','3':'-'},
+                '3':{'2':'-','4':'-'},
+                '4':{'1':'-','3':'-','5':'+'},
+                '5':{'4':'+','8':'-','6':'-'},
+                '6':{'5':'-','7':'-'},
+                '7':{'6':'-','8':'+'},
+                '8':{'7':'+','5':'-'}}
+# crease_angle = {'1':{'2':'-','4':'+'},
+#                 '2':{'1':'-','3':'+'},
+#                 '3':{'2':'+','4':'+'},
+#                 '4':{'1':'+','3':'+','5':'-'},
+#                 '5':{'4':'-','8':'+','6':'+'},
+#                 '6':{'5':'+','7':'+'},
+#                 '7':{'6':'+','8':'-'},
+#                 '8':{'7':'-','5':'+'}}
+# ################### fig7. cup
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
 # polygen1 = {"1":[[50,50],[0,100],[-50,50]],
@@ -62,9 +179,52 @@ facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
 #            "7":[[[100,0],[33,0]],[[33,0],[50,-50]]],
 #            "8":[[[50,-50],[-50,-50]]]
 #            }
-state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
+# adjacent_facets = {'1':['3'],
+#                    '2':['3','5'],
+#                    '3':['1','2','4','6'],
+#                    '4':['3','7'],
+#                    '5':['2','6'],
+#                    '6':['3','5','7','8'],
+#                    '7':['4','6'],
+#                    '8':['1']}
+# crease_edge = {}
+# graph_edge = {'1':[[[50,50],[0,100]],[[0,100],[-50,50]]],
+#               '2':[[[-50,50],[-100,0]]],
+#               '4':[[[100,0],[50,50]]],
+#               '5':[[[-100,0],[-50,-50]]],
+#               '7':[[[100,0],[50,-50]]],
+#               '8':[[[50,-50],[0,-100]],[[0,-100],[-50,-50]]]}
+# state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
+state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
+          "graph_edge":graph_edge,"crease_edge":crease_edge,
+          "adjacent_facets":adjacent_facets,"fold":"valley","reflect":0,"crease_angle":crease_angle,
+          "count":0}
+
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
+
+def ifTwoNodesSame(state_node1,state_node2):
+    # if the stacks are the same, then the two nodes are the same
+    stack1_tmp = state_node1["stack"]
+    stack2_tmp = state_node2["stack"]
+    if len(stack1_tmp) != len(stack2_tmp):
+        return 0
+    else:
+        for i in range(len(stack1_tmp)):
+            s1 = sorted(stack1_tmp[i])
+            s2 = sorted(stack2_tmp[i])
+            if s1 != s2:
+                return 0
+        return 1
+
+def ifNodeVisit(state_node,state_dict):
+    # test if the node is the same as node that has been visited
+    for state in state_dict.keys():
+
+        state_node1 = state_dict[state]
+        if ifTwoNodesSame(state_node1,state_node) == 1:
+            return 1
+    return 0
 
 def bfs(state_graph, src, tgt_stack):
     """Return the shortest path from the source (src) to the target (tgt) in the graph"""
@@ -79,21 +239,29 @@ def bfs(state_graph, src, tgt_stack):
     # #dynamic generate variable's names, using locals()
     # names = locals()
     a = 1
+    node_infertile = []
     while queue:
-        a = a+1
+        a=a+1
         node = queue.popleft()
         # print "node",node
+        # if node in node_infertile:
+        #     continue
         state_node = state_dict[node]
         # generate children states for this node
-        children_states = osg.generateNextLayerStates(state_node)
+        children_states = osg.generateNextLayerStates(state_node,state1["adjacent_facets"],state1["crease_angle"])
         # print "children states",children_states
         if len(children_states) != 0:
             for i in range(len(children_states)):
+                if ifNodeVisit(children_states[i],state_dict) == 1:
+                    # print "same stack1",children_states[i]['stack']
+                    # continue
+                    node_infertile.append('state'+str(k))
                 #store each children states
                 state_dict["state"+str(k)] = children_states[i]
                 #add children states to state_graph
                 state_graph.setdefault(node,[]).append("state"+str(k))
                 k += 1
+
         # print "state graph",state_graph
 
         if node in state_graph.keys():
@@ -115,11 +283,13 @@ def bfs(state_graph, src, tgt_stack):
         node = parents[node]
 
     return path
-
+# simple hat
+# goal = [['1'],['2'],['6'],['7','5'],['4','3'],['8']]
 #fig.5 simple fold
 # path = bfs(state_graph,"state1",[['3'],['4'],['1'],['2']])
 # fig.7 plane
 # path = bfs(state_graph,"state1",[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']])
+# reflection plane [['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']]
 #fig.7 cup
 # path = bfs(state_graph,"state1",[['8'],['6'],['3'],['4'],['7'],['2'],['5'],['1']])
 #fig.7 cup_deprecated
@@ -127,32 +297,50 @@ def bfs(state_graph, src, tgt_stack):
 ###### print "state_graph",state_graph["state175"]
 ###### print "state175",state_dict['state175']["stack"]
 # print "path",path
-# stack_step = []
-# for i in range(len(path)):
-#     step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
-#     stack_step.append(step_tmp)
-# print "stack step",stack_step
 
+#,polygen2=polygen2,stack2=stack2s
 def visualSteps(state_dict,path):
-    img_num = len(path)
-    column = int(img_num/4)+1
+    img_num = len(path) #+ 1
+    print "img num",img_num
     row = 3
-    w = 350 #plane
-    h = 320 #plane
-    w = 250 #cup
-    h = 250 #cup
-    w = 300 #fig5
-    h = 300 #fig5
+    if img_num % row == 0:
+        column = int(img_num/3)
+    else:
+        column = int(img_num/3) + 1
+    print "column",column
+    # w = 350 #plane
+    # h = 320 #plane
+    # w = 250 #cup
+    # h = 250 #cup
+    # w = 300 #fig5
+    # h = 300 #fig5
+    w = 450
+    h = 350
     imgs=[]
+    count = 0
+    # canvas = vl.init_canvas(w,h)
+    # rot_mat = vl.rotationFromImg(w,h,0)
+    # img=vl.drawPolygon(polygen2,stack2,canvas,rot_mat,0,count=0)
+    # imgs.append(img)
     for i in range(len(path)):
         canvas = vl.init_canvas(w,h)
-        rot_mat = vl.rotationFromImg(w,h)
-        img=vl.drawPolygon(state_dict[path[i]]["polygen"],state_dict[path[i]]["stack"],canvas,rot_mat)
+        rot_mat = vl.rotationFromImg(w,h,0)
+        fold = state_dict[path[i]]["fold"]
+        stack = state_dict[path[i]]["stack"]
+        if i == 0:
+            stack2 = state_dict[path[0]]["stack"]
+        else:
+            stack2 = state_dict[path[i-1]]["stack"]
+        if fold == "mountain" and (len(stack2)-len(stack)) % 2 == 1:
+            count = count + 1
+
+        img=vl.drawPolygon(state_dict[path[i]]["polygen"],stack,canvas,rot_mat,fold,count)
         imgs.append(img)
-    vl.drawMultiFigs(imgs,column,row)
+    vl.drawMultiFigs(imgs,column,row,img_num)
     plt.show()
 
-def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']]):
+def findPath(state_graph=state_graph,src="state1",goal_stack=[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']]):
+    start_time = time.time()
     path = bfs(state_graph,src,goal_stack)
     # print "path",path
     stack_step = []
@@ -160,7 +348,79 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],
         step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
         stack_step.append(step_tmp)
     # print "stack step",stack_step
+    total_time = time.time() - start_time
+    print "###########################search time: ",total_time
     return path,stack_step,state_dict
 
-# path,stack_step,state_dict = findPath()
+def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
+    # visualize parent and its children
+    imgs = []
+    count = state_dict[parent_state]["count"]
+    print "count",count
+    img = osg.VisualState(state_dict[parent_state],adjacent_facets,count)
+    # vl.drawOneFig(img)
+    imgs.append(img)
+    if parent_state in state_graph.keys():
+        img_num = len(state_graph[parent_state])
+        for node in state_graph[parent_state]:
+            count = state_dict[node]["count"]
+            img = osg.VisualState(state_dict[node],adjacent_facets,count)
+            imgs.append(img)
+    else:
+        img_num = 1
+    vl.drawMultiFigsGraph(imgs,img_num)
+    plt.show()
+
+def visualTree(state_graph,path,state_dict):
+    #visualize a tree
+    column = len(path)
+    row = [1]
+    src = ['state1']
+    imgs = []
+    for i in range(column):
+        src_list_tmp = []
+        row_tmp = 0
+        for j in src:
+            # print "j",j
+            img = osg.VisualState(state_dict[j],state1["adjacent_facets"],state_dict[j]["count"])
+            img_tmp = copy.deepcopy(img)
+            imgs.append(img_tmp)
+            if j not in state_graph.keys():
+                continue
+            row_tmp = row_tmp + len(state_graph[j])
+            src_tmp = state_graph[j]
+            src_list_tmp.append(src_tmp)
+        src = [x for j in src_list_tmp for x in j]
+        row.append(row_tmp)
+    # print "columnnn",column
+    row = row[:column]
+    # print "rowwww",row
+    img_num = sum(row)
+    # print "imgss",len(imgs)
+    # print "img num",img_num
+    vl.drawTree(imgs,column,row,img_num+1)
+    plt.show()
+    return imgs
+
+
+
+path,stack_step,state_dict = findPath()
+print "path",path
+# print "state4 angle",state_dict['state4']["crease_angle"]
+# print "state7 count",state_dict['state7']['count']
+# img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
+# vl.drawOneFig(img)
+# print "crease angle7",state_dict['state7']['crease_angle']
+# print "crease angle",state_dict['state15']['crease_angle']
+# visualParentChildren(state_graph,"state7",state_dict,adjacent_facets)
+# for i in range(len(path)):
+#     print "state dict",state_dict[path[i]]
+# print "stack step",stack_step
+# print "graph",state_graph
+imgs=visualTree(state_graph,path,state_dict)
+# vl.drawOneFig(imgs[9])
 # visualSteps(state_dict,path)
+# for i in range(1,46):
+#     node = "state"+str(i)
+#     print "state dict",state_dict[node]["reflect"]
+# print "path",path
