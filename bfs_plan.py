@@ -10,6 +10,7 @@ import visulization as vl
 import math
 import matplotlib.pyplot as plt
 import time
+import helper as hp
 #################### simple hat
 # # rot = [[0,-1,0],[1,0,0],[0,0,1]]
 # stack1 = [['1','2','3','4','5','6','7','8']]
@@ -142,14 +143,22 @@ adjacent_facets = {'1':['2','4'],
                    '6':['5','7'],
                    '7':['6','8'],
                    '8':['5','7']}
-crease_angle = {'1':{'2':'+','4':'-'},
-                '2':{'1':'+','3':'-'},
-                '3':{'2':'-','4':'-'},
-                '4':{'1':'-','3':'-','5':'+'},
-                '5':{'4':'+','8':'-','6':'-'},
-                '6':{'5':'-','7':'-'},
-                '7':{'6':'-','8':'+'},
-                '8':{'7':'+','5':'-'}}
+# crease_angle = {'1':{'2':'-','4':'-'},
+#                 '2':{'1':'-','3':'-'},
+#                 '3':{'2':'-','4':'-'},
+#                 '4':{'1':'-','3':'-','5':'+'},
+#                 '5':{'4':'+','8':'-','6':'-'},
+#                 '6':{'5':'-','7':'-'},
+#                 '7':{'6':'-','8':'+'},
+#                 '8':{'7':'+','5':'-'}}
+crease_angle = {'1':{'2':'-','4':'+'},
+                '2':{'1':'-','3':'+'},
+                '3':{'2':'+','4':'-'},
+                '4':{'1':'+','3':'-','5':'+'},
+                '5':{'4':'+','8':'+','6':'-'},
+                '6':{'5':'-','7':'+'},
+                '7':{'6':'+','8':'-'},
+                '8':{'7':'-','5':'+'}}
 # ################### fig7. cup
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
@@ -190,10 +199,11 @@ crease_angle = {'1':{'2':'+','4':'-'},
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
           "adjacent_facets":adjacent_facets,"fold":"valley","reflect":0,"crease_angle":crease_angle,
-          "count":0}
+          "count":0,"overlap":0}
 
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
+state_graph_culled = {'state1':[]}
 
 def ifTwoNodesSame(state_node1,state_node2):
     # if the stacks are the same, then the two nodes are the same
@@ -212,11 +222,10 @@ def ifTwoNodesSame(state_node1,state_node2):
 def ifNodeVisit(state_node,state_dict):
     # test if the node is the same as node that has been visited
     for state in state_dict.keys():
-
         state_node1 = state_dict[state]
         if ifTwoNodesSame(state_node1,state_node) == 1:
-            return 1
-    return 0
+            return 1,state
+    return 0,'state0'
 
 def bfs(state_graph, src, tgt_stack):
     """Return the shortest path from the source (src) to the target (tgt) in the graph"""
@@ -230,33 +239,30 @@ def bfs(state_graph, src, tgt_stack):
     k = 2
     # #dynamic generate variable's names, using locals()
     # names = locals()
-    a = 1
-    node_infertile = []
+    mm = 1
     while queue:
-        a=a+1
+        mm=mm+1
         node = queue.popleft()
         # print "node",node
-        # if node in node_infertile:
-        #     continue
         state_node = state_dict[node]
-        # if node == "state15" or node == "state19" or node == "state20" or node == "state21" or node == "state27" or node == "state28":
-        #     state_node['crease_angle']['8']['7'] = '+'
-        #     state_node['crease_angle']['7']['8'] = '+'
         # generate children states for this node
         children_states = osg.generateNextLayerStates(state_node,state1["adjacent_facets"],state1["crease_angle"])
         # print "children states",children_states
         if len(children_states) != 0:
             for i in range(len(children_states)):
-                if ifNodeVisit(children_states[i],state_dict) == 1:
-                    # print "same stack1",children_states[i]['stack']
+                a,state = ifNodeVisit(children_states[i],state_dict)
+                if a == 1:
+                    state_graph_culled.setdefault(node,[]).append(state)
                     continue
-                    node_infertile.append('state'+str(k))
                 #store each children states
                 state_dict["state"+str(k)] = children_states[i]
                 #add children states to state_graph
                 state_graph.setdefault(node,[]).append("state"+str(k))
+                state_graph_culled.setdefault(node,[]).append("state"+str(k))
                 k += 1
-
+        elif len(children_states) == 0:
+            # state_graph.setdefault(node,[])
+            state_graph_culled.setdefault(node,[])
         # print "state graph",state_graph
 
         if node in state_graph.keys():
@@ -334,24 +340,24 @@ def visualSteps(state_dict,path):
     vl.drawMultiFigs(imgs,column,row,img_num)
     plt.show()
 
-def findPath(state_graph=state_graph,src="state1",goal_stack=[['3'],['2'],['1'],['4'],['5'],['8'],['7'],['6']]):
+def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']]):
     start_time = time.time()
     path = bfs(state_graph,src,goal_stack)
+    total_time = time.time() - start_time
+    print "###########################search time: ",total_time
     # print "path",path
     stack_step = []
     for i in range(len(path)):
         step_tmp = copy.deepcopy(state_dict[path[i]]["stack"])
         stack_step.append(step_tmp)
     # print "stack step",stack_step
-    total_time = time.time() - start_time
-    print "###########################search time: ",total_time
     return path,stack_step,state_dict
 
 def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
-    # visualize parent and its children
+    # visualize parent and its children nodes
     imgs = []
     count = state_dict[parent_state]["count"]
-    print "count",count
+    # print "count",count
     img = osg.VisualState(state_dict[parent_state],adjacent_facets,count)
     # vl.drawOneFig(img)
     imgs.append(img)
@@ -377,6 +383,7 @@ def visualTree(state_graph,path,state_dict):
         row_tmp = 0
         for j in src:
             # print "j",j
+            # print 'count',state_dict[j]['count']
             img = osg.VisualState(state_dict[j],state1["adjacent_facets"],state_dict[j]["count"])
             img_tmp = copy.deepcopy(img)
             imgs.append(img_tmp)
@@ -397,25 +404,99 @@ def visualTree(state_graph,path,state_dict):
     plt.show()
     return imgs
 
-
-
 path,stack_step,state_dict = findPath()
 print "path",path
-# print "state4 angle",state_dict['state4']["crease_angle"]
-# print "state7 count",state_dict['state7']['count']
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
-print "crease angle7",state_dict['state7']['crease_angle']
-print "crease angle",state_dict['state15']['crease_angle']
-# visualParentChildren(state_graph,"state7",state_dict,adjacent_facets)
-# for i in range(len(path)):
-#     print "state dict",state_dict[path[i]]
-print "stack step",stack_step
-print "graph",state_graph
-imgs=visualTree(state_graph,path,state_dict)
-# vl.drawOneFig(imgs[9])
+# visualParentChildren(state_graph,"state21",state_dict,adjacent_facets)
+# print "stack step",stack_step
+# print "graph",state_graph
+# print "state_graph_culled",state_graph_culled
+# imgs=visualTree(state_graph,path,state_dict)
+vl.drawGraph(state_dict,state_graph_culled,path)
 # visualSteps(state_dict,path)
-# for i in range(1,46):
-#     node = "state"+str(i)
-#     print "state dict",state_dict[node]["reflect"]
-# print "path",path
+
+################################construct weighted graph
+
+def WeightedGraph(state_dict,state_graph):
+    graph = {}
+    for state in state_graph.keys():
+        graph.setdefault(state,{})
+        for kid in state_graph[state]:
+            weight = hp.determineWeight(state_dict[state],state_dict[kid])
+            # print "weight",weight
+            graph[state].setdefault(kid,weight)
+        #save the last node
+        if len(state_graph[state]) == 1 and state_graph[state][0] not in state_graph.keys():
+            graph.setdefault(state_graph[state][0],{})
+    return graph
+################################construct weighted graph
+
+def dijkstra(graph, start, end):
+    # empty dictionary to hold distances
+    distances = {}
+    # list of vertices in path to current vertex
+    predecessors = {}
+
+    # get all the nodes that need to be assessed
+    to_assess = graph.keys()
+
+    # set all initial distances to infinity
+    #  and no predecessor for any node
+    for node in graph:
+        distances[node] = float('inf')
+        predecessors[node] = None
+
+    # set the initial collection of
+    # permanently labelled nodes to be empty
+    sp_set = []
+
+    # set the distance from the start node to be 0
+    distances[start] = 0
+
+    # as long as there are still nodes to assess:
+    while len(sp_set) < len(to_assess):
+
+        # chop out any nodes with a permanent label
+        still_in = {node: distances[node]\
+                    for node in [node for node in\
+                    to_assess if node not in sp_set]}
+
+        # find the closest node to the current node
+        closest = min(still_in, key = distances.get)
+
+        # and add it to the permanently labelled nodes
+        sp_set.append(closest)
+
+        # then for all the neighbours of
+        # the closest node (that was just added to
+        # the permanent set)
+        for node in graph[closest]:
+            # if a shorter path to that node can be found
+            if distances[node] > distances[closest] +\
+                       graph[closest][node]:
+
+                # update the distance with
+                # that shorter distance
+                distances[node] = distances[closest] +\
+                       graph[closest][node]
+
+                # set the predecessor for that node
+                predecessors[node] = closest
+
+    # once the loop is complete the final
+    # path needs to be calculated - this can
+    # be done by backtracking through the predecessors
+    path = [end]
+    while start not in path:
+        path.append(predecessors[path[-1]])
+
+    # return the path in order start -> end, and it's cost
+    return path[::-1], distances[end]
+
+graph = WeightedGraph(state_dict,state_graph_culled)
+print 'weighted graph',graph
+dijkstra_path, dijkstra_dis = dijkstra(graph,start=path[0],end=path[-1])
+print 'dijkstra_path',dijkstra_path
+print 'dijkstra_dis',dijkstra_dis
+imgs=visualTree(state_graph,path,state_dict)

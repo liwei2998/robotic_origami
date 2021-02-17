@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import copy
 import matplotlib.gridspec as gridspec
 from compiler.ast import flatten
+import networkx as nx
+import helper as hp
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
 # polygen1 = {"1":[[50,50],[0,100],[-50,50]],
@@ -95,22 +97,44 @@ def decideOddEven(stack,fold,count):
     light_facets = []
     dark_facets = []
     # print "count",count
-    if fold == "valley" or fold == "mountain":
+    # print 'stack',stack
+    if count >= 66 and count < 88:
+        dark_facets.append(stack[0])
+        for i in range(1,len(stack)):
+            k = i - 1
+            if k % 2 == 1:
+                light_facets.append(stack[i])
+            elif k % 2 == 0:
+                dark_facets.append(stack[i])
+    elif count >= 88 and count < 100:
+        light_facets.append(stack[-1])
+        for i in range(0,len(stack)-1):
+            k = i + count
+            if k % 2 == 1:
+                light_facets.append(stack[i])
+            elif k % 2 == 0:
+                dark_facets.append(stack[i])
+    elif count >= 100:
+        light_facets.append(stack[-1])
+        dark_facets.append(stack[0])
+        for i in range(1,len(stack)-1):
+            k = i + count - 1
+            if k % 2 == 1:
+                light_facets.append(stack[i])
+            elif k % 2 == 0:
+                dark_facets.append(stack[i])
+    else:
         for i in range(len(stack)):
             k = i + count
             if k % 2 == 1:
                 light_facets.append(stack[i])
             elif k % 2 == 0:
                 dark_facets.append(stack[i])
-    if fold == 0:
-        for i in range(len(stack)):
-            if i % 2 == 0:
-                dark_facets.append(stack[i])
-            elif i % 2 == 1:
-                light_facets.append(stack[i])
 
     light_facets = flatten(light_facets)
     dark_facets = flatten(dark_facets)
+    # print 'light',light_facets
+    # print 'dark',dark_facets
     return light_facets,dark_facets
 
 def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count,reflec=0):
@@ -200,6 +224,7 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
         color3 = color31
     # print "odd",odd
     # print "even",even
+    # print "stack1",stack1
     for i in range(len(stack1)):
         for j in range(len(stack1[i])):
             facet = stack1[i][j]
@@ -326,3 +351,61 @@ def drawTree(imgs,column,row,img_num):
         # plt.xticks([])
         # plt.yticks([])
     plt.tight_layout()
+
+def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
+    # G = nx.DiGraph()
+    G = nx.Graph()
+    layer = len(path)
+    w = 6
+    pos = {'state1':(3,layer)}
+    src = ['state1']
+    k = 1
+    layer = layer - 1
+    while layer > 0:
+        state = 'state' + str(k)
+        k = k + 1
+        if state in src:
+            children = []
+            for i in range(len(src)):
+                if len(state_graph_culled[src[i]]) == 0:
+                    continue
+                for kid in state_graph_culled[src[i]]:
+                    children.append(kid)
+            children = set(children)
+            children = list(children)
+            children = sorted(children)
+            # print "children",children
+            # print "layer",layer
+            src = children
+            num = len(children)
+            for i in range(len(children)):
+                pos.setdefault(children[i],[])
+                if num == 1:
+                    pos[children[i]] = [w/2,layer]
+                elif num == 3:
+                    pos[children[i]] = [w/3*(i+1)-1,layer]
+                elif num == 7:
+                    pos[children[i]] = [7/7*(i+1)-1,layer]
+                else:
+                    pos[children[i]] = [w/num*(i+1),layer]
+            layer = layer - 1
+        # print "src",src
+
+    for state in state_graph_culled.keys():
+        G.add_node(state,desc=state)
+        for kid in state_graph_culled[state]:
+            G.add_node(kid,desc=kid)
+            weight = hp.determineWeight(state_dict[state],state_dict[kid])
+            # print "weight",weight
+            G.add_edge(state,kid,weight=weight)
+    nx.draw_networkx(G,pos=pos,arrows=True,arrowstyle='->',arrowsize=18,node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3)
+    # F = G.to_directed()
+    # nx.draw_networkx(F,pos=pos,arrows=True,arrowstyle='->',node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3)
+    edge_labels = nx.get_edge_attributes(G,'weight')
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=8)
+    # nx.draw_networkx_edge_labels(G,pos,arrows=True)
+
+    # node_labels = nx.get_node_attributes(G,'desc')
+    # nx.draw_networkx_labels(G,pos,labels=node_labels,font_size=8)
+    limits = plt.axis('off')
+    plt.show()
