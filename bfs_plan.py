@@ -317,12 +317,12 @@ path,stack_step,state_dict = findPath()
 print "path",path
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
-# vl.visualParentChildren(state_graph,"state21",state_dict,adjacent_facets)
+# vl.visualParentChildren(state_graph,"state19",state_dict,adjacent_facets)
 # print "stack step",stack_step
 # print "graph",state_graph
 # print "state_graph_culled",state_graph_culled
 # imgs=vl.visualTree(state_graph,path,state_dict)
-vl.drawGraph(state_dict,state_graph_culled,path)
+# vl.drawGraph(state_dict,state_graph_culled,path)
 # vl.visualSteps(state_dict,path)
 
 def dijkstra(graph, start, end):
@@ -399,9 +399,21 @@ def findDijkstraFromTree(state_dict,graph,init_end):
                 dijkstra_dis = dis
     return dijkstra_path,dijkstra_dis
 
+def findAllPathsFromTree(state_dict,graph,init_end):
+    paths = []
+    for end in state_dict.keys():
+        if state_dict[end]['stack'] == state_dict[init_end]['stack']:
+            path,_ = dijkstra(graph,'state1',end)
+            paths.append(path)
+    return paths
 graph = hp.WeightedGraph(state_dict,state_graph_culled)
 # print 'weighted graph',graph
-dijkstra_path, dijkstra_dis = findDijkstraFromTree(state_dict,graph,path[-1])
-print 'dijkstra_path',dijkstra_path
-print 'dijkstra_dis',dijkstra_dis
-imgs=vl.visualTree(state_graph,path,state_dict)
+paths = findAllPathsFromTree(state_dict,graph,path[-1])
+unique_paths = hp.cutPaths(paths,state_dict)
+print "unique_paths",unique_paths,len(unique_paths)
+imgs=vl.visualTreeFromPaths(unique_paths,state_dict)
+# dijkstra_path, dijkstra_dis = findDijkstraFromTree(state_dict,graph,path[-1])
+# print 'dijkstra_path',dijkstra_path
+# print 'dijkstra_dis',dijkstra_dis
+# imgs=vl.visualTree(state_graph,path,state_dict)
+# vl.drawGraph(state_dict,state_graph_culled,path)

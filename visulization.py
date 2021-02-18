@@ -454,6 +454,26 @@ def visualTree(state_graph,path,state_dict):
     drawTree(imgs,column,row,img_num+1)
     plt.show()
     return imgs
+
+def visualTreeFromPaths(paths,state_dict,step=6):
+    #visualize a tree with input paths
+    column = step
+    row = []
+    imgs = []
+    paths = np.array(paths)
+    for i in range(len(paths[0])):
+        temp = paths[:,i]
+        temp = set(temp)
+        temp = list(temp)
+        row.append(len(temp))
+        for j in temp:
+            img = VisualState(state_dict[j],state_dict['state1']["adjacent_facets"],state_dict[j]["count"])
+            img_tmp = copy.deepcopy(img)
+            imgs.append(img_tmp)
+    img_num = sum(row)
+    drawTree(imgs,column,row,img_num+1)
+    plt.show()
+    return imgs
 ##############visualize the search tree#####################################
 
 ######################visulize the search graph#############################
@@ -476,7 +496,11 @@ def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
                 if len(state_graph_culled[src[i]]) == 0:
                     continue
                 for kid in state_graph_culled[src[i]]:
-                    children.append(kid)
+                    weight = hp.determineWeight(state_dict[src[i]],state_dict[kid])
+                    if weight > 18:
+                        continue
+                    elif weight <= 18:
+                        children.append(kid)
             children = set(children)
             children = list(children)
             children = sorted(children, key=lambda x: int(x[5:]))
@@ -491,21 +515,35 @@ def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
                 else:
                     pos[children[i]] = [2*i+4-num,layer]
             layer = layer - 1
-        # print "src",src
+    # print "src",src
+    # print "pos",pos
 
-    for state in state_graph_culled.keys():
+    #pruned based on the physics
+    for state in pos.keys():
         G.add_node(state,desc=state)
+        if state not in state_graph_culled.keys():
+            continue
         for kid in state_graph_culled[state]:
+            if kid not in pos.keys():
+                continue
             G.add_node(kid,desc=kid)
             weight = hp.determineWeight(state_dict[state],state_dict[kid])
             # print "weight",weight
             G.add_edge(state,kid,weight=weight)
-    nx.draw_networkx(G,pos=pos,with_labels=False,arrows=True,arrowstyle='->',arrowsize=10,node_size=1200,node_color='#00CED1',node_shape='s',alpha=0.5,width=2) #for tree
+    #not pruned
+    # for state in state_graph_culled.keys():
+    #     G.add_node(state,desc=state)
+    #     for kid in state_graph_culled[state]:
+    #         G.add_node(kid,desc=kid)
+    #         weight = hp.determineWeight(state_dict[state],state_dict[kid])
+    #         # print "weight",weight
+    #         G.add_edge(state,kid,weight=weight)
+    nx.draw_networkx(G,pos=pos,with_labels=False,arrows=False,arrowstyle='->',arrowsize=10,node_size=5000,node_color='#00CED1',node_shape='s',alpha=0.5,width=2) #for tree
     # nx.draw_networkx(G,pos=pos,arrows=True,arrowstyle='->',arrowsize=18,node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3) #for graph
     # F = G.to_directed()
     # nx.draw_networkx(F,pos=pos,arrows=True,arrowstyle='->',node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3)
     edge_labels = nx.get_edge_attributes(G,'weight')
-    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=6)
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=10)
     # nx.draw_networkx_edge_labels(G,pos,arrows=True)
 
     node_labels = nx.get_node_attributes(G,'desc')
