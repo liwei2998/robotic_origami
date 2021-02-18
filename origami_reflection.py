@@ -3,7 +3,6 @@ import numpy_indexed as npi
 from shapely.geometry import *
 import copy
 import numpy as np
-import visulization as vl
 import matplotlib.pyplot as plt
 from compiler.ast import flatten
 import helper as hp
@@ -1320,6 +1319,11 @@ def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
     #generate new overlap, overlap is used for determining if flap area>base area
     overlap = hp.ifOverlap(base,flap,polygen)
     # print 'overlap',overlap
+    #generate grasp method
+    if len(flap) == 1:
+        method = 'flexflip'
+    elif len(flap) > 1:
+        method = 'scooping'
     #generate new count, count is used for drawing the front and back view of a state
     #1: mountain fold 1 layer, and generate new layers
     if sign == '-' and len(flap) % 2 == 1 and len(stack) != len(reversed_stack):
@@ -1357,7 +1361,7 @@ def generateNextStateInformation(state,crease,sign,crease_sets=0,reflect=0):
     #generate new crease angles
     new_crease_angle = newStateCreaseAngle(crease_angle,crease_edge,stack)
     # print "crease edge",crease_edge
-    return reversed_stack,count,new_crease_angle,reversed_polygen,new_crease,new_graph_edge,crease_edge,overlap
+    return reversed_stack,count,new_crease_angle,reversed_polygen,new_crease,new_graph_edge,crease_edge,overlap,method
 
 def ifReflectable(state):
     # determine if this state can be reflection folded
@@ -1556,8 +1560,8 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         elif sign == '-':
             state_tmp["fold"] = "mountain"
 
-        new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap = generateNextStateInformation(state,feasible_crease[i],
-                                                                                                                           sign)
+        new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap,method = generateNextStateInformation(state,feasible_crease[i],
+                                                                                                                                          sign)
         state_tmp["stack"] = new_stack
         state_tmp["count"] = count
         state_tmp["crease_angle"] = new_crease_angle
@@ -1569,6 +1573,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         state_tmp["adjacent_facets"] = adj_facets
         state_tmp["reflect"] = 0
         state_tmp["overlap"] = overlap
+        state_tmp["method"] = method
         # print "count",count
         # print " crease angle",new_crease_angle
 
@@ -1588,7 +1593,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         base = stack_info["base"]
         sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,crease_angle,state['stack'],reflec=1,h=h)
         if sign == '+':
-            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap = generateNextStateInformation(state,0,"+",
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap,method = generateNextStateInformation(state,0,"+",
                                                                                                                                crease_sets=crease_set_max,
                                                                                                                                reflect=1)
             state_tmp["stack"] = new_stack
@@ -1602,6 +1607,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["count"] = count
             state_tmp["crease_angle"] = new_crease_angle
             state_tmp["overlap"] = overlap
+            state_tmp["method"] = method
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
             # print "reflect crease",crease_set_max[0]
@@ -1616,7 +1622,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         base = stack_info["base"]
         sign = determineSign(state["facet_crease"],crease_set_min[0],adj_facets,state["polygen"],base,crease_angle,state['stack'],reflec=1,h=h)
         if sign == '-':
-            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap = generateNextStateInformation(state,0,"-",
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap,method = generateNextStateInformation(state,0,"-",
                                                                                                                                crease_sets=crease_set_min,
                                                                                                                                reflect=1)
             state_tmp["stack"] = new_stack
@@ -1630,6 +1636,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["count"] = count
             state_tmp["crease_angle"] = new_crease_angle
             state_tmp["overlap"] = overlap
+            state_tmp["method"] = method
 
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
@@ -1647,7 +1654,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         sign = determineSign(state["facet_crease"],crease_set_max[0],adj_facets,state["polygen"],base,crease_angle,state['stack'],reflec=1,h=h)
         # print "sign31",sign
         if sign == '+':
-            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap = generateNextStateInformation(state,0,"+",
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap,method = generateNextStateInformation(state,0,"+",
                                                                                                                                crease_sets=crease_set_max,
                                                                                                                                reflect=1)
             state_tmp["stack"] = new_stack
@@ -1661,6 +1668,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["count"] = count
             state_tmp["crease_angle"] = new_crease_angle
             state_tmp["overlap"] = overlap
+            state_tmp["method"] = method
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
             # print "reflect crease", crease_set_max[0]
@@ -1675,9 +1683,9 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
         sign = determineSign(state["facet_crease"],crease_set_min[0],adj_facets,state["polygen"],base,crease_angle,state['stack'],reflec=1,h=h)
         # print "sign32",sign
         if sign == '-':
-            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap = generateNextStateInformation(state,0,"-",
-                                                                                                        crease_sets=crease_set_min,
-                                                                                                        reflect=1)
+            new_stack,count,new_crease_angle,new_polygen,new_creases,new_graph_edge,crease_edge,overlap,method = generateNextStateInformation(state,0,"-",
+                                                                                                                                            crease_sets=crease_set_min,
+                                                                                                                                            reflect=1)
             state_tmp["stack"] = new_stack
             state_tmp["polygen"] = new_polygen
             state_tmp["facet_crease"] = new_creases
@@ -1689,6 +1697,7 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             state_tmp["count"] = count
             state_tmp["crease_angle"] = new_crease_angle
             state_tmp["overlap"] = overlap
+            state_tmp["method"] = method
 
             state_tmp0 = copy.deepcopy(state_tmp)
             new_states.append(state_tmp0)
@@ -1696,51 +1705,6 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
             # print "reflec32"
 
     return new_states
-
-def VisualState(state,adj_facets,count=0,w=350,h=320):
-    '''
-    input a state, visuliaze this state
-    '''
-    #find minimal set of lines taht contain all creases
-    creases = findAllCreases(state["stack"],state["facet_crease"])
-    crease = findNonRepetiveCreases(creases)
-
-    min_crease = findMininalSetCrease(crease)
-    # print "min_creases",min_crease
-    #find all feasible creases
-    feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
-    # print "feasible crease",feasible_crease
-    reflec, crease_set_min, crease_set_max = ifReflectable(state)
-    # print "reflec",reflec,crease_set_min,crease_set_max
-
-    #prepare canvas
-    fold = state["fold"]
-    ref = state["reflect"]
-    canvas = vl.init_canvas(w,h,reflec=ref)
-    rot_mat = vl.rotationFromImg(w,h,0)
-    fe = []
-    if len(feasible_crease)!=0:
-        fe = copy.deepcopy(feasible_crease)
-
-    if reflec==1:
-        c_set1 = copy.deepcopy(crease_set_max)
-        c_set2 = []
-    elif reflec==2:
-        c_set2 = copy.deepcopy(crease_set_min)
-        c_set1 = []
-    elif reflec==3:
-        c_set1 = copy.deepcopy(crease_set_max)
-        c_set2 = copy.deepcopy(crease_set_min)
-    elif reflec==0:
-        c_set1 = []
-        c_set2 = []
-    # print "ref",ref
-    img = vl.drawPolygonwithCrease(state["polygen"],state["stack"],canvas,
-                                   rot_mat,fold,count,min_crease,fe,
-                                   crease_set1=c_set1,crease_set2=c_set2,
-                                   reflect=ref)
-
-    return img
 
 # crease_edge = {'8': [[[-75, 30], [0, 105]], [[-75, -45], [-75, 30]]],
 #                '5': [[[0, -105], [0, 105]], [[-75, 30], [0, 105]], [[-75, -105], [-75, 30]]],

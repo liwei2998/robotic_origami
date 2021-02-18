@@ -199,7 +199,7 @@ crease_angle = {'1':{'2':'-','4':'+'},
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
           "adjacent_facets":adjacent_facets,"fold":"valley","reflect":0,"crease_angle":crease_angle,
-          "count":0,"overlap":0}
+          "count":0,"overlap":0,"method":"flexflip"}
 
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
@@ -251,9 +251,9 @@ def bfs(state_graph, src, tgt_stack):
         if len(children_states) != 0:
             for i in range(len(children_states)):
                 a,state = ifNodeVisit(children_states[i],state_dict)
-                if a == 1:
-                    state_graph_culled.setdefault(node,[]).append(state)
-                    continue
+                # if a == 1:
+                #     state_graph_culled.setdefault(node,[]).append(state)
+                #     continue
                 #store each children states
                 state_dict["state"+str(k)] = children_states[i]
                 #add children states to state_graph
@@ -299,46 +299,6 @@ def bfs(state_graph, src, tgt_stack):
 ###### print "state175",state_dict['state175']["stack"]
 # print "path",path
 
-#,polygen2=polygen2,stack2=stack2s
-def visualSteps(state_dict,path):
-    img_num = len(path) #+ 1
-    print "img num",img_num
-    row = 3
-    if img_num % row == 0:
-        column = int(img_num/3)
-    else:
-        column = int(img_num/3) + 1
-    print "column",column
-    # w = 350 #plane
-    # h = 320 #plane
-    # w = 250 #cup
-    # h = 250 #cup
-    # w = 300 #fig5
-    # h = 300 #fig5
-    w = 450
-    h = 350
-    imgs=[]
-    count = 0
-    # canvas = vl.init_canvas(w,h)
-    # rot_mat = vl.rotationFromImg(w,h,0)
-    # img=vl.drawPolygon(polygen2,stack2,canvas,rot_mat,0,count=0)
-    # imgs.append(img)
-    for i in range(len(path)):
-        canvas = vl.init_canvas(w,h)
-        rot_mat = vl.rotationFromImg(w,h,0)
-        fold = state_dict[path[i]]["fold"]
-        stack = state_dict[path[i]]["stack"]
-        if i == 0:
-            stack2 = state_dict[path[0]]["stack"]
-        else:
-            stack2 = state_dict[path[i-1]]["stack"]
-        if fold == "mountain" and (len(stack2)-len(stack)) % 2 == 1:
-            count = count + 1
-
-        img=vl.drawPolygon(state_dict[path[i]]["polygen"],stack,canvas,rot_mat,fold,count)
-        imgs.append(img)
-    vl.drawMultiFigs(imgs,column,row,img_num)
-    plt.show()
 
 def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']]):
     start_time = time.time()
@@ -353,84 +313,17 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],
     # print "stack step",stack_step
     return path,stack_step,state_dict
 
-def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
-    # visualize parent and its children nodes
-    imgs = []
-    count = state_dict[parent_state]["count"]
-    # print "count",count
-    img = osg.VisualState(state_dict[parent_state],adjacent_facets,count)
-    # vl.drawOneFig(img)
-    imgs.append(img)
-    if parent_state in state_graph.keys():
-        img_num = len(state_graph[parent_state])
-        for node in state_graph[parent_state]:
-            count = state_dict[node]["count"]
-            img = osg.VisualState(state_dict[node],adjacent_facets,count)
-            imgs.append(img)
-    else:
-        img_num = 1
-    vl.drawMultiFigsGraph(imgs,img_num)
-    plt.show()
-
-def visualTree(state_graph,path,state_dict):
-    #visualize a tree
-    column = len(path)
-    row = [1]
-    src = ['state1']
-    imgs = []
-    for i in range(column):
-        src_list_tmp = []
-        row_tmp = 0
-        for j in src:
-            # print "j",j
-            # print 'count',state_dict[j]['count']
-            img = osg.VisualState(state_dict[j],state1["adjacent_facets"],state_dict[j]["count"])
-            img_tmp = copy.deepcopy(img)
-            imgs.append(img_tmp)
-            if j not in state_graph.keys():
-                continue
-            row_tmp = row_tmp + len(state_graph[j])
-            src_tmp = state_graph[j]
-            src_list_tmp.append(src_tmp)
-        src = [x for j in src_list_tmp for x in j]
-        row.append(row_tmp)
-    # print "columnnn",column
-    row = row[:column]
-    # print "rowwww",row
-    img_num = sum(row)
-    # print "imgss",len(imgs)
-    # print "img num",img_num
-    vl.drawTree(imgs,column,row,img_num+1)
-    plt.show()
-    return imgs
-
 path,stack_step,state_dict = findPath()
 print "path",path
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
-# visualParentChildren(state_graph,"state21",state_dict,adjacent_facets)
+# vl.visualParentChildren(state_graph,"state21",state_dict,adjacent_facets)
 # print "stack step",stack_step
 # print "graph",state_graph
 # print "state_graph_culled",state_graph_culled
-# imgs=visualTree(state_graph,path,state_dict)
+# imgs=vl.visualTree(state_graph,path,state_dict)
 vl.drawGraph(state_dict,state_graph_culled,path)
-# visualSteps(state_dict,path)
-
-################################construct weighted graph
-
-def WeightedGraph(state_dict,state_graph):
-    graph = {}
-    for state in state_graph.keys():
-        graph.setdefault(state,{})
-        for kid in state_graph[state]:
-            weight = hp.determineWeight(state_dict[state],state_dict[kid])
-            # print "weight",weight
-            graph[state].setdefault(kid,weight)
-        #save the last node
-        if len(state_graph[state]) == 1 and state_graph[state][0] not in state_graph.keys():
-            graph.setdefault(state_graph[state][0],{})
-    return graph
-################################construct weighted graph
+# vl.visualSteps(state_dict,path)
 
 def dijkstra(graph, start, end):
     # empty dictionary to hold distances
@@ -494,9 +387,21 @@ def dijkstra(graph, start, end):
     # return the path in order start -> end, and it's cost
     return path[::-1], distances[end]
 
-graph = WeightedGraph(state_dict,state_graph_culled)
-print 'weighted graph',graph
-dijkstra_path, dijkstra_dis = dijkstra(graph,start=path[0],end=path[-1])
+def findDijkstraFromTree(state_dict,graph,init_end):
+    #find the optimal path from a tree
+    #init_end is the first goal state found by bfs
+    dijkstra_dis = 100000.0
+    for end in state_dict.keys():
+        if state_dict[end]['stack'] == state_dict[init_end]['stack']:
+            path, dis = dijkstra(graph,'state1',end)
+            if dis < dijkstra_dis:
+                dijkstra_path = path
+                dijkstra_dis = dis
+    return dijkstra_path,dijkstra_dis
+
+graph = hp.WeightedGraph(state_dict,state_graph_culled)
+# print 'weighted graph',graph
+dijkstra_path, dijkstra_dis = findDijkstraFromTree(state_dict,graph,path[-1])
 print 'dijkstra_path',dijkstra_path
 print 'dijkstra_dis',dijkstra_dis
-imgs=visualTree(state_graph,path,state_dict)
+imgs=vl.visualTree(state_graph,path,state_dict)

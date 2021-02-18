@@ -8,6 +8,7 @@ import matplotlib.gridspec as gridspec
 from compiler.ast import flatten
 import networkx as nx
 import helper as hp
+import origami_reflection as osg
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
 # polygen1 = {"1":[[50,50],[0,100],[-50,50]],
@@ -137,6 +138,8 @@ def decideOddEven(stack,fold,count):
     # print 'dark',dark_facets
     return light_facets,dark_facets
 
+
+
 def drawPolygon(polygon,stack1,canvas,rot_mat,fold,count,reflec=0):
     rot_poly = PolygoninImag(rot_mat,polygon)
     odd, even = decideOddEven(stack1,fold,count)
@@ -264,6 +267,51 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
     # cv2.destroyAllWindows()
     return canvas
 
+def VisualState(state,adj_facets,count=0,w=350,h=320):
+    '''
+    input a state, visuliaze this state
+    '''
+    #find minimal set of lines taht contain all creases
+    creases = osg.findAllCreases(state["stack"],state["facet_crease"])
+    crease = osg.findNonRepetiveCreases(creases)
+
+    min_crease = osg.findMininalSetCrease(crease)
+    # print "min_creases",min_crease
+    #find all feasible creases
+    feasible_crease = osg.findFeasibleCrease(min_crease,state["polygen"])
+    # print "feasible crease",feasible_crease
+    reflec, crease_set_min, crease_set_max = osg.ifReflectable(state)
+    # print "reflec",reflec,crease_set_min,crease_set_max
+
+    #prepare canvas
+    fold = state["fold"]
+    ref = state["reflect"]
+    canvas = init_canvas(w,h,reflec=ref)
+    rot_mat = rotationFromImg(w,h,0)
+    fe = []
+    if len(feasible_crease)!=0:
+        fe = copy.deepcopy(feasible_crease)
+
+    if reflec==1:
+        c_set1 = copy.deepcopy(crease_set_max)
+        c_set2 = []
+    elif reflec==2:
+        c_set2 = copy.deepcopy(crease_set_min)
+        c_set1 = []
+    elif reflec==3:
+        c_set1 = copy.deepcopy(crease_set_max)
+        c_set2 = copy.deepcopy(crease_set_min)
+    elif reflec==0:
+        c_set1 = []
+        c_set2 = []
+    # print "ref",ref
+    img = drawPolygonwithCrease(state["polygen"],state["stack"],canvas,
+                               rot_mat,fold,count,min_crease,fe,
+                               crease_set1=c_set1,crease_set2=c_set2,
+                               reflect=ref)
+
+    return img
+
 def drawOneFig(img):
     title = "node"
     plt.imshow(img)
@@ -288,7 +336,9 @@ def drawMultiFigs(imgs,column,row,img_num):
             plt.xticks([])
             plt.yticks([])
 
+###############visuliaze parent kids graph###############################
 def drawMultiFigsGraph(imgs,row):
+    #draw a parent children graph
     gs0 = gridspec.GridSpec(2,1)
     gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
     gs2 = gridspec.GridSpecFromSubplotSpec(1,row,subplot_spec=gs0[1])
@@ -306,8 +356,29 @@ def drawMultiFigsGraph(imgs,row):
         plt.yticks([])
     plt.tight_layout()
 
+def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
+    # visualize parent and its children nodes
+    imgs = []
+    count = state_dict[parent_state]["count"]
+    # print "count",count
+    img = VisualState(state_dict[parent_state],adjacent_facets,count)
+    # vl.drawOneFig(img)
+    imgs.append(img)
+    if parent_state in state_graph.keys():
+        img_num = len(state_graph[parent_state])
+        for node in state_graph[parent_state]:
+            count = state_dict[node]["count"]
+            img = VisualState(state_dict[node],adjacent_facets,count)
+            imgs.append(img)
+    else:
+        img_num = 1
+    drawMultiFigsGraph(imgs,img_num)
+    plt.show()
+###############visuliaze parent kids graph###############################
 
+##################visualize the search tree#####################################
 def drawTree(imgs,column,row,img_num):
+    # draw a search tree
     gs0 = gridspec.GridSpec(column,1)
     gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
     gs2 = gridspec.GridSpecFromSubplotSpec(1,row[1],subplot_spec=gs0[1])
@@ -352,9 +423,44 @@ def drawTree(imgs,column,row,img_num):
         # plt.yticks([])
     plt.tight_layout()
 
+def visualTree(state_graph,path,state_dict):
+    #visualize a tree
+    column = len(path)
+    row = [1]
+    src = ['state1']
+    imgs = []
+    for i in range(column):
+        src_list_tmp = []
+        row_tmp = 0
+        for j in src:
+            # print "j",j
+            # print 'count',state_dict[j]['count']
+            img = VisualState(state_dict[j],state_dict['state1']["adjacent_facets"],state_dict[j]["count"])
+            img_tmp = copy.deepcopy(img)
+            imgs.append(img_tmp)
+            if j not in state_graph.keys():
+                continue
+            row_tmp = row_tmp + len(state_graph[j])
+            src_tmp = state_graph[j]
+            src_list_tmp.append(src_tmp)
+        src = [x for j in src_list_tmp for x in j]
+        row.append(row_tmp)
+    # print "columnnn",column
+    row = row[:column]
+    # print "rowwww",row
+    img_num = sum(row)
+    # print "imgss",len(imgs)
+    # print "img num",img_num
+    drawTree(imgs,column,row,img_num+1)
+    plt.show()
+    return imgs
+##############visualize the search tree#####################################
+
+######################visulize the search graph#############################
 def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
+    #draw the search graph
     # G = nx.DiGraph()
-    G = nx.Graph()
+    G = nx.DiGraph()
     layer = len(path)
     w = 6
     pos = {'state1':(3,layer)}
@@ -373,7 +479,7 @@ def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
                     children.append(kid)
             children = set(children)
             children = list(children)
-            children = sorted(children)
+            children = sorted(children, key=lambda x: int(x[5:]))
             # print "children",children
             # print "layer",layer
             src = children
@@ -382,12 +488,8 @@ def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
                 pos.setdefault(children[i],[])
                 if num == 1:
                     pos[children[i]] = [w/2,layer]
-                elif num == 3:
-                    pos[children[i]] = [w/3*(i+1)-1,layer]
-                elif num == 7:
-                    pos[children[i]] = [7/7*(i+1)-1,layer]
                 else:
-                    pos[children[i]] = [w/num*(i+1),layer]
+                    pos[children[i]] = [2*i+4-num,layer]
             layer = layer - 1
         # print "src",src
 
@@ -398,14 +500,60 @@ def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
             weight = hp.determineWeight(state_dict[state],state_dict[kid])
             # print "weight",weight
             G.add_edge(state,kid,weight=weight)
-    nx.draw_networkx(G,pos=pos,arrows=True,arrowstyle='->',arrowsize=18,node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3)
+    nx.draw_networkx(G,pos=pos,with_labels=False,arrows=True,arrowstyle='->',arrowsize=10,node_size=1200,node_color='#00CED1',node_shape='s',alpha=0.5,width=2) #for tree
+    # nx.draw_networkx(G,pos=pos,arrows=True,arrowstyle='->',arrowsize=18,node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3) #for graph
     # F = G.to_directed()
     # nx.draw_networkx(F,pos=pos,arrows=True,arrowstyle='->',node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3)
     edge_labels = nx.get_edge_attributes(G,'weight')
-    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=8)
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=6)
     # nx.draw_networkx_edge_labels(G,pos,arrows=True)
 
-    # node_labels = nx.get_node_attributes(G,'desc')
-    # nx.draw_networkx_labels(G,pos,labels=node_labels,font_size=8)
+    node_labels = nx.get_node_attributes(G,'desc')
+    nx.draw_networkx_labels(G,pos,labels=node_labels,font_size=8)
     limits = plt.axis('off')
     plt.show()
+######################visulize the search graph#############################
+
+#####################visualize the fold sequnce#############################
+#,polygen2=polygen2,stack2=stack2s
+def visualSteps(state_dict,path):
+    #visuliaze fold sequnce
+    img_num = len(path) #+ 1
+    # print "img num",img_num
+    row = 3
+    if img_num % row == 0:
+        column = int(img_num/3)
+    else:
+        column = int(img_num/3) + 1
+    # print "column",column
+    # w = 350 #plane
+    # h = 320 #plane
+    # w = 250 #cup
+    # h = 250 #cup
+    # w = 300 #fig5
+    # h = 300 #fig5
+    w = 450
+    h = 350
+    imgs=[]
+    count = 0
+    # canvas = init_canvas(w,h)
+    # rot_mat = rotationFromImg(w,h,0)
+    # img=drawPolygon(polygen2,stack2,canvas,rot_mat,0,count=0)
+    # imgs.append(img)
+    for i in range(len(path)):
+        canvas = init_canvas(w,h)
+        rot_mat = rotationFromImg(w,h,0)
+        fold = state_dict[path[i]]["fold"]
+        stack = state_dict[path[i]]["stack"]
+        if i == 0:
+            stack2 = state_dict[path[0]]["stack"]
+        else:
+            stack2 = state_dict[path[i-1]]["stack"]
+        if fold == "mountain" and (len(stack2)-len(stack)) % 2 == 1:
+            count = count + 1
+
+        img=drawPolygon(state_dict[path[i]]["polygen"],stack,canvas,rot_mat,fold,count)
+        imgs.append(img)
+    drawMultiFigs(imgs,column,row,img_num)
+    plt.show()
+#####################visualize the fold sequnce#############################
