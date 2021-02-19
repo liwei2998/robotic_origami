@@ -4,6 +4,7 @@ from shapely.ops import cascaded_union
 import geopandas as gpd
 from shapely.geometry import *
 import copy
+from compiler.ast import flatten
 ###########################public functions##############################
 def determineWeight(state1,state2):
     #an edge connect state1 and state2
@@ -96,12 +97,39 @@ def WeightedGraph(state_dict,state_graph):
             graph.setdefault(state_graph[state][0],{})
     return graph
 
+def CutedGraph(state_dict,state_graph_culled,unique_paths):
+    #return non-symmetric state_graph
+    graph = {}
+    paths = flatten(unique_paths)
+    for node1 in state_graph_culled.keys():
+        if node1 in paths:
+            graph.setdefault(node1,[])
+            for node2 in state_graph_culled[node1]:
+                if node2 in paths:
+                    graph[node1].append(node2)
+    return graph
 #*******************************cut tree************************************#
 def ifNodeSameorSymmetric(state_node1,state_node2):
     #determine if two nodes in the same layer are the same or symmetric
     # return 1 if yes
     #if stacks are the same, the nodes are the same
-    if state_node1['stack'] == state_node2['stack']:
+    def ifStacksSame(stack1,stack2):
+        #return if two stacks are the same
+        if len(stack1) != len(stack2):
+            return 0
+        else:
+            for i in range(len(stack1)):
+                s1 = stack1[i]
+                s2 = stack2[i]
+                if len(s1) != len(s2):
+                    return 0
+                for j in range(len(s1)):
+                    s11 = sorted(s1[j])
+                    s22 = sorted(s2[j])
+                    if s11 != s22:
+                        return 0
+        return 1
+    if ifStacksSame(state_node1['stack'],state_node2['stack']) == 1:
         return 1
     #if 'method' 'reflection' 'fold', any of which are different, the nodes are not same or symmetric
     if state_node1['method'] != state_node2['method']:
@@ -147,7 +175,7 @@ def ifPathSameorSymmetric(path1,path2,state_dict):
             return 0
     return 1
 
-def cutPaths(paths,state_dict):
+def cutedPaths(paths,state_dict):
     #return non-symmetric paths
     index = [] #store the indexes of symmetric paths
     unique_paths = []

@@ -387,8 +387,8 @@ def drawTree(imgs,column,row,img_num):
     gs5 = gridspec.GridSpecFromSubplotSpec(1,row[4],subplot_spec=gs0[4])
     gs6 = gridspec.GridSpecFromSubplotSpec(1,row[5],subplot_spec=gs0[5])
     ax1 = plt.subplot(gs1[0,1])
-    ax1.imshow(imgs[0])
-    plt.title("node1",fontsize=8)
+    ax1.imshow(imgs[0][0])
+    plt.title("state1",fontsize=8)
     plt.xticks([])
     plt.yticks([])
     num = 1
@@ -409,9 +409,10 @@ def drawTree(imgs,column,row,img_num):
                 ax = plt.subplot(gs5[0,i-1])
             elif k == 5:
                 ax = plt.subplot(gs6[0,i-1])
-            ax.imshow(imgs[num])
+            ax.imshow(imgs[num][0])
+            title = imgs[num][1]
             num = num + 1
-            title = "node" + str(num)
+            # title = "node" + str(num)
             plt.title(title,fontsize=8)
             plt.xticks([])
             plt.yticks([])
@@ -437,12 +438,18 @@ def visualTree(state_graph,path,state_dict):
             # print 'count',state_dict[j]['count']
             img = VisualState(state_dict[j],state_dict['state1']["adjacent_facets"],state_dict[j]["count"])
             img_tmp = copy.deepcopy(img)
-            imgs.append(img_tmp)
+            imgs.append([img_tmp,j])
             if j not in state_graph.keys():
                 continue
-            row_tmp = row_tmp + len(state_graph[j])
             src_tmp = state_graph[j]
-            src_list_tmp.append(src_tmp)
+            src_tmpp = []
+            for state in src_tmp:
+                if hp.determineWeight(state_dict[j],state_dict[state]) > 18:
+                    continue
+                elif hp.determineWeight(state_dict[j],state_dict[state]) <= 18:
+                    src_tmpp.append(state)
+            src_list_tmp.append(src_tmpp)
+            row_tmp = row_tmp + len(src_tmpp)
         src = [x for j in src_list_tmp for x in j]
         row.append(row_tmp)
     # print "columnnn",column
@@ -451,26 +458,6 @@ def visualTree(state_graph,path,state_dict):
     img_num = sum(row)
     # print "imgss",len(imgs)
     # print "img num",img_num
-    drawTree(imgs,column,row,img_num+1)
-    plt.show()
-    return imgs
-
-def visualTreeFromPaths(paths,state_dict,step=6):
-    #visualize a tree with input paths
-    column = step
-    row = []
-    imgs = []
-    paths = np.array(paths)
-    for i in range(len(paths[0])):
-        temp = paths[:,i]
-        temp = set(temp)
-        temp = list(temp)
-        row.append(len(temp))
-        for j in temp:
-            img = VisualState(state_dict[j],state_dict['state1']["adjacent_facets"],state_dict[j]["count"])
-            img_tmp = copy.deepcopy(img)
-            imgs.append(img_tmp)
-    img_num = sum(row)
     drawTree(imgs,column,row,img_num+1)
     plt.show()
     return imgs
@@ -538,12 +525,12 @@ def drawGraph(state_dict,state_graph_culled,path,weight=0,pos=0):
     #         weight = hp.determineWeight(state_dict[state],state_dict[kid])
     #         # print "weight",weight
     #         G.add_edge(state,kid,weight=weight)
-    nx.draw_networkx(G,pos=pos,with_labels=False,arrows=False,arrowstyle='->',arrowsize=10,node_size=5000,node_color='#00CED1',node_shape='s',alpha=0.5,width=2) #for tree
+    nx.draw_networkx(G,pos=pos,with_labels=False,arrows=False,arrowstyle='->',arrowsize=10,node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=2) #for tree
     # nx.draw_networkx(G,pos=pos,arrows=True,arrowstyle='->',arrowsize=18,node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3) #for graph
     # F = G.to_directed()
     # nx.draw_networkx(F,pos=pos,arrows=True,arrowstyle='->',node_size=3000,node_color='#00CED1',node_shape='s',alpha=0.5,width=3)
-    edge_labels = nx.get_edge_attributes(G,'weight')
-    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=10)
+    # edge_labels = nx.get_edge_attributes(G,'weight')
+    # nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels,font_size=10)
     # nx.draw_networkx_edge_labels(G,pos,arrows=True)
 
     node_labels = nx.get_node_attributes(G,'desc')

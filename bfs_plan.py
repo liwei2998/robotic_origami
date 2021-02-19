@@ -401,19 +401,38 @@ def findDijkstraFromTree(state_dict,graph,init_end):
 
 def findAllPathsFromTree(state_dict,graph,init_end):
     paths = []
+    tmp = 0
     for end in state_dict.keys():
         if state_dict[end]['stack'] == state_dict[init_end]['stack']:
             path,_ = dijkstra(graph,'state1',end)
+            for i in range(len(path)-1):
+                node1 = path[i]
+                node2 = path[i+1]
+                if hp.determineWeight(state_dict[node1],state_dict[node2]) > 18:
+                    tmp = 1
+                    break
+            if tmp == 1:
+                tmp = 0
+                continue
             paths.append(path)
     return paths
 graph = hp.WeightedGraph(state_dict,state_graph_culled)
 # print 'weighted graph',graph
+#####################################cut1: cut larger bottom facet configurations##########################################
+# imgs=vl.visualTree(state_graph_culled,path,state_dict)
+# vl.drawGraph(state_dict,state_graph_culled,path)
+####################################cut2: cut paths that cannot reach the goal###############################
 paths = findAllPathsFromTree(state_dict,graph,path[-1])
-unique_paths = hp.cutPaths(paths,state_dict)
-print "unique_paths",unique_paths,len(unique_paths)
-imgs=vl.visualTreeFromPaths(unique_paths,state_dict)
+# cuted_state_graph = hp.CutedGraph(state_dict,state_graph_culled,paths)
+# imgs=vl.visualTree(cuted_state_graph,path,state_dict)
+# vl.drawGraph(state_dict,cuted_state_graph,path)
+###################################cut 3: cut symmetric paths########################################
+unique_paths = hp.cutedPaths(paths,state_dict)
+cuted_state_graph = hp.CutedGraph(state_dict,state_graph_culled,unique_paths)
+print 'unique paths',unique_paths
+imgs=vl.visualTree(cuted_state_graph,path,state_dict)
+vl.drawGraph(state_dict,cuted_state_graph,path)
+#######################dijkstra path
 # dijkstra_path, dijkstra_dis = findDijkstraFromTree(state_dict,graph,path[-1])
 # print 'dijkstra_path',dijkstra_path
 # print 'dijkstra_dis',dijkstra_dis
-# imgs=vl.visualTree(state_graph,path,state_dict)
-# vl.drawGraph(state_dict,state_graph_culled,path)
