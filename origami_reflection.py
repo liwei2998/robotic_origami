@@ -88,28 +88,40 @@ def lineToFunction(line):
     c = line[1][0]*line[0][1] - line[0][0]*line[1][1]
     return a,b,c
 
-def ifLineColinear1(line1,line2):
+def ifLineColinear(line1,line2):
     '''
     input two lines, return if they are colinear
-    a) colinear b) has intersection
     '''
-    axis1 = lineToAxis(line1)
-    axis2 = lineToAxis(line2)
-    if (axis1==axis2).all() or (axis1==(-axis2)).all():
-        is_meet = npi.intersection(line1,line2)
-        if len(is_meet) > 0:
+    a1,b1,c1 = lineToFunction(line1)
+    a2,b2,c2 = lineToFunction(line2)
+    if a1 == a2 and b1 == b2 and c1 == c2:
+        return 1
+    if (a1==0 and a2!=0) or (a2==0 and a1!=0) or (b2==0 and b1!=0) or (b1==0 and b2!=0) or (c1==0 and c2!=0) or (c2==0 and c1!=0):
+        return 0
+    elif a1 == 0:
+        if c1 == 0:
             return 1
         else:
-            new_line = [line1[0],line2[0]]
-            new_axis = lineToAxis(new_line)
-            if (axis1==new_axis).all() or (axis1==(-new_axis)).all():
+            if round(float(b1)/float(b2),3) == round(float(c1)/float(c2),3):
                 return 1
-            else:
-                return 0
+            return 0
+    elif b1 == 0:
+        if c1 == 0:
+            return 1
+        else:
+            if round(float(a1)/float(a2),3) == round(float(c1)/float(c2),3):
+                return 1
+            return 0
+    elif c1 == 0:
+        if round(float(a1)/float(a2),3) == round(float(b1)/float(b2),3):
+            return 1
+        return 0
     else:
+        if round(float(a1)/float(a2),3) == round(float(b1)/float(b2),3) and round(float(a1)/float(a2),3) == round(float(c1)/float(c2),3):
+            return 1
         return 0
 
-def ifLineColinear(line1,line2):
+def ifLineColinear1(line1,line2):
     '''
     input two lines, return if they are colinear
     a) colinear b) has intersection
@@ -137,13 +149,30 @@ def ifLineSame(line1,line2):
         result=1
     return result
 
-def CombineLinearLines1(line1,line2):
+def CombineLinearLines(lines):
     '''
-    input two colinear lines, return the combined one line
+    input colinear lines, return the combined one line
     '''
     "line1 = [[0,0],[1,1]]"
-    new_line = npi.exclusive(line1,line2)
-    new_line = new_line.tolist()
+    # sort the lines according to x coordinate
+    new_lines = np.array(lines)
+    new_lines = np.reshape(new_lines,(-1,2)) #reshape from a 3-d array to 2-d array
+    # print 'new line1',new_lines
+    new_lines = new_lines[np.argsort(new_lines[:,0])]
+    # print 'new line2',new_lines
+    new_lines_tmp = new_lines.reshape(len(lines),2,2)
+    #determien if these colinea lines have intersection with each other
+    for i in range(len(lines)-1):
+        line1 = new_lines_tmp[i]
+        line2 = new_lines_tmp[i+1]
+        #has intersection
+        if sorted(line1[1]) == sorted(line2[0]):
+            continue
+        # no intersection
+        else:
+            return lines
+    new_lines = new_lines.tolist()
+    new_line = [[new_lines[0],new_lines[-1]]]
     return new_line
 
 def pointDistance(point1,point2):
@@ -153,7 +182,7 @@ def pointDistance(point1,point2):
     dis = np.sqrt(dx*dx + dy*dy)
     return dis
 
-def CombineLinearLines(line1,line2):
+def CombineLinearLines1(line1,line2):
     '''
     input two colinear lines, return the combined one line
     '''
@@ -203,15 +232,16 @@ def findNonRepetiveCreases(creases):
         return crease
     for i in range(len(creases)):
         line1 = creases[i]
+        if i in index:
+            continue
+        crease.append(line1)
+        index.append(i)
         for j in range(i+1,len(creases)):
+            if j in index:
+                continue
             line2 = creases[j]
             if ifLineSame(line1,line2) == 1:
                 index.append(j)
-                if i not in index:
-                    crease.append(line1)
-                    break
-            else:
-                continue
     return crease
 
 def findMininalSetCrease1(crease):
@@ -241,25 +271,31 @@ def findMininalSetCrease1(crease):
 def findMininalSetCrease(crease):
     #find linear creases, and combine them
     min_crease = []
-    colinear_num = []
+    index = []
+
     if len(crease) == 1:
         min_crease = crease
         return min_crease
     for i in range(len(crease)):
+        if i in index:
+            continue
+        creases = [] #store colinear creases, the colinear num may be 2 or more
+        index.append(i)
         line1 = crease[i]
+        creases.append(line1)
         for j in range(i+1,len(crease)):
             line2 = crease[j]
-            if ifLineSame(line1,line2)==1:
+            if ifLineSame(line1,line2) == 1:
+                index.append(j)
                 continue
-            #combine linear creases
-            if ifLineColinear(line1,line2)==1:
-                min_crease.append(CombineLinearLines(line1,line2))
-                colinear_num.append(j)
-                colinear_num.append(i)
-                break
-            #if the line is not colinear with any other lines
-        if j == (len(crease)-1) and i not in colinear_num:
-            min_crease.append(line1)
+            if ifLineColinear(line1,line2) == 1:
+                index.append(j)
+                creases.append(line2)
+        # print 'creases',creases
+        tmp = CombineLinearLines(creases)
+        # print 'combined crease',tmp
+        for i in range(len(tmp)):
+            min_crease.append(tmp[i])
     return min_crease
 
 def is_inPoly(polygen,point):
@@ -617,7 +653,7 @@ def reverseLineDirection(line):
     line[1] = tmp
     return line
 
-def ifReverseLineDirection(polygon,crease,root_facet='4'):
+def ifReverseLineDirection(polygon,crease,root_facet='3'):
     #determine if the direction of the crease needs to be reversed
     #if root_facet at the right of the crease, no need to reverse
     # if at the left, reverse line's direction to ensure the root_facet is always at base
@@ -663,7 +699,7 @@ def divideStack(crease,stack,polygon):
             flap.append(flap_tmp)
     return base,flap
 
-def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='4'):
+def findFlapsbyCreaseSet(crease_set,stack,height,polygon,root_facet='3'):
     #input a crease set, return feasible flaps
     flaps = []
     count = 1
@@ -936,7 +972,7 @@ def findAdjandSameCreaseFacet(facet,facet_crease,crease,adjacent_facets):
             count += 1
     if count == len(facet_crease[facet]):
         return None
-
+    facet_list = []
     # search it adjacent facets, see who has the same crease
     for i in range(len(adj_facets)):
         facett = adj_facets[i]
@@ -946,7 +982,8 @@ def findAdjandSameCreaseFacet(facet,facet_crease,crease,adjacent_facets):
             if ifLineColinear(k,crease)==1:
                 # print "faaacet",facett
                 # print "creaseee",k
-                return facett
+                facet_list.append(facett)
+    return facet_list
 
 def newStateCrease(crease,facet_crease,flaps,adjacent_facets):
     #delete folded crease in new state
@@ -958,7 +995,10 @@ def newStateCrease(crease,facet_crease,flaps,adjacent_facets):
         facet = flap_tmp[i]
         # print "facettt",facet
         f_tmp = findAdjandSameCreaseFacet(facet,facet_crease,crease,adjacent_facets)
-        flap_tmp.append(f_tmp)
+        if f_tmp is None:
+            continue
+        for i in range(len(f_tmp)):
+            flap_tmp.append(f_tmp[i])
     # print "flap_tmp1",flap_tmp
     flap_tmp = set(flap_tmp)
     flap_tmp = list(flap_tmp)
@@ -1230,49 +1270,52 @@ def reverseStack(base,flap,crease,polygen,sign):
 # crease_edge = findCreaseEdge(new_edges,crease_edge)
 # print "crease edge",crease_edge
 
-def newStateCreaseAngle(crease_angle,crease_edge,stack,root_facet='4'):
+def newStateCreaseAngle(crease_angle,crease_edge,stack,root_facet='3'):
     #if root crease in crease_edge, return new crease angle
     #else, crease angle will not change
-
-    # crease_angle = {'1':{'2':'-','4':'-'},
-    #                 '2':{'1':'-','3':'-'},
-    #                 '3':{'2':'-','4':'-'},
-    #                 '4':{'1':'-','3':'-','5':'+'},
-    #                 '5':{'4':'+','8':'-','6':'-'},
-    #                 '6':{'5':'-','7':'-'},
-    #                 '7':{'6':'-','8':'-'},
-    #                 '8':{'7':'-','5':'-'}}
-    crease_angle = {'1':{'2':'-','4':'+'},
-                    '2':{'1':'-','3':'+'},
-                    '3':{'2':'+','4':'-'},
-                    '4':{'1':'+','3':'-','5':'+'},
-                    '5':{'4':'+','8':'+','6':'-'},
-                    '6':{'5':'-','7':'+'},
-                    '7':{'6':'+','8':'-'},
-                    '8':{'7':'-','5':'+'}}
+    crease_angle = {'1':{'3':'+'},
+                    '2':{'3':'+','5':'-'},
+                    '3':{'1':'+','2':'+','4':'+','6':'-'},
+                    '4':{'3':'+','7':'-'},
+                    '5':{'2':'-','6':'-'},
+                    '6':{'5':'-','7':'-','3':'-','8':'+'},
+                    '7':{'6':'-','4':'-'},
+                    '8':{'6':'+'}}
+    # # airplane
+    # crease_angle = {'1':{'2':'-','4':'+'},
+    #                 '2':{'1':'-','3':'+'},
+    #                 '3':{'2':'+','4':'-'},
+    #                 '4':{'1':'+','3':'-','5':'+'},
+    #                 '5':{'4':'+','8':'+','6':'-'},
+    #                 '6':{'5':'-','7':'+'},
+    #                 '7':{'6':'+','8':'-'},
+    #                 '8':{'7':'-','5':'+'}}
     if root_facet not in crease_edge.keys():
         return crease_angle
 
     crease_edges = crease_edge[root_facet]
-    root_crease = [[0,-105],[0,105]]
+    # root_crease = [[0,-105],[0,105]] # aiplane
+    root_crease = [[-210,0],[210,0]] # cup
     for i in range(len(crease_edges)):
-        if ifLineSame(crease_edges[i],root_crease) == 1:
-            # crease_angle = {'1':{'2':'-','4':'-'},
-            #                 '2':{'1':'-','3':'-'},
-            #                 '3':{'2':'-','4':'-'},
-            #                 '4':{'1':'-','3':'-','5':'+'},
-            #                 '5':{'4':'+','8':'+','6':'+'},
-            #                 '6':{'5':'+','7':'+'},
-            #                 '7':{'6':'+','8':'+'},
-            #                 '8':{'7':'+','5':'+'}}
-            crease_angle = {'1':{'2':'-','4':'+'},
-                            '2':{'1':'-','3':'+'},
-                            '3':{'2':'+','4':'-'},
-                            '4':{'1':'+','3':'-','5':'+'},
-                            '5':{'4':'+','8':'-','6':'+'},
-                            '6':{'5':'+','7':'-'},
-                            '7':{'6':'-','8':'+'},
-                            '8':{'7':'+','5':'-'}}
+        if ifLineColinear(crease_edges[i],root_crease) == 1:
+            # print 'stack',stack
+            crease_angle = {'1':{'3':'+'},
+                            '2':{'3':'+','5':'-'},
+                            '3':{'1':'+','2':'+','4':'+','6':'-'},
+                            '4':{'3':'+','7':'-'},
+                            '5':{'2':'-','6':'+'},
+                            '6':{'5':'+','7':'+','3':'-','8':'-'},
+                            '7':{'6':'+','4':'-'},
+                            '8':{'6':'-'}}
+            # # airplane
+            # crease_angle = {'1':{'2':'-','4':'+'},
+            #                 '2':{'1':'-','3':'+'},
+            #                 '3':{'2':'+','4':'-'},
+            #                 '4':{'1':'+','3':'-','5':'+'},
+            #                 '5':{'4':'+','8':'-','6':'+'},
+            #                 '6':{'5':'+','7':'-'},
+            #                 '7':{'6':'-','8':'+'},
+            #                 '8':{'7':'+','5':'-'}}
             return crease_angle
     return crease_angle
 
@@ -1539,8 +1582,12 @@ def generateNextLayerStates(state,adj_facets,crease_angle):
     feasible_crease = findFeasibleCrease(min_crease,state["polygen"])
     # print "feasible crease",feasible_crease
     # print "stack",state["stack"]
-    # if state["stack"][0] == ['7', '8']:
+    # if state["stack"] == [['6', '7', '8'], ['1', '3', '4'], ['2'], ['5']]:
     #     print "******************************************************************"
+    #     print 'creases',creases
+    #     print 'state crease',state['facet_crease']
+    #     print 'min crease',min_crease
+    #     print "feasible crease",feasible_crease
     crease_angle = copy.deepcopy(state["crease_angle"])
     # print "angle",crease_angle
     #generate new states for each feasible crease

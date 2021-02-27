@@ -5,6 +5,7 @@ import cv2
 import matplotlib.pyplot as plt
 import copy
 import matplotlib.gridspec as gridspec
+from matplotlib.patches import ConnectionPatch
 from compiler.ast import flatten
 import networkx as nx
 import helper as hp
@@ -97,8 +98,8 @@ def decideOddEven(stack,fold,count):
     # if valley fold, even is dark
     light_facets = []
     dark_facets = []
-    # print "count",count
-    # print 'stack',stack
+    print "count odd even",count
+    print 'stack',stack
     if count >= 66 and count < 88:
         dark_facets.append(stack[0])
         for i in range(1,len(stack)):
@@ -134,8 +135,8 @@ def decideOddEven(stack,fold,count):
 
     light_facets = flatten(light_facets)
     dark_facets = flatten(dark_facets)
-    # print 'light',light_facets
-    # print 'dark',dark_facets
+    print 'light',light_facets
+    print 'dark',dark_facets
     return light_facets,dark_facets
 
 
@@ -267,7 +268,7 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,fold,count,min_crease,fe
     # cv2.destroyAllWindows()
     return canvas
 
-def VisualState(state,adj_facets,count=0,w=350,h=320):
+def VisualState(state,adj_facets,count=0,w=500,h=500):
     '''
     input a state, visuliaze this state
     '''
@@ -305,6 +306,7 @@ def VisualState(state,adj_facets,count=0,w=350,h=320):
         c_set1 = []
         c_set2 = []
     # print "ref",ref
+    print 'count',count
     img = drawPolygonwithCrease(state["polygen"],state["stack"],canvas,
                                rot_mat,fold,count,min_crease,fe,
                                crease_set1=c_set1,crease_set2=c_set2,
@@ -377,9 +379,57 @@ def visualParentChildren(state_graph,parent_state,state_dict,adjacent_facets):
 ###############visuliaze parent kids graph###############################
 
 ##################visualize the search tree#####################################
+# def drawTree(imgs,column,row,img_num):
+#     # draw a search tree
+#     gs0 = gridspec.GridSpec(column,1)
+#     gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
+#     gs2 = gridspec.GridSpecFromSubplotSpec(1,row[1],subplot_spec=gs0[1])
+#     gs3 = gridspec.GridSpecFromSubplotSpec(1,row[2],subplot_spec=gs0[2])
+#     gs4 = gridspec.GridSpecFromSubplotSpec(1,row[3],subplot_spec=gs0[3])
+#     gs5 = gridspec.GridSpecFromSubplotSpec(1,row[4],subplot_spec=gs0[4])
+#     gs6 = gridspec.GridSpecFromSubplotSpec(1,row[5],subplot_spec=gs0[5])
+#     ax1 = plt.subplot(gs1[0,1])
+#     ax1.imshow(imgs[0][0])
+#     plt.title("state1",fontsize=8)
+#     plt.xticks([])
+#     plt.yticks([])
+#     num = 1
+#     # gs2.update(wspace=0,hspace=0)
+#     # gs3.update(wspace=0,hspace=0)
+#     # gs4.update(wspace=0,hspace=0)
+#     # gs5.update(wspace=0,hspace=0)
+#     # gs6.update(wspace=0,hspace=0)
+#     for k in range(1,len(row)):
+#         for i in range(1,row[k]+1):
+#             if k == 1:
+#                 ax = plt.subplot(gs2[0,i-1])
+#             elif k == 2:
+#                 ax = plt.subplot(gs3[0,i-1])
+#             elif k == 3:
+#                 ax = plt.subplot(gs4[0,i-1])
+#             elif k == 4:
+#                 ax = plt.subplot(gs5[0,i-1])
+#             elif k == 5:
+#                 ax = plt.subplot(gs6[0,i-1])
+#             ax.imshow(imgs[num][0])
+#             title = imgs[num][1]
+#             num = num + 1
+#             # title = "node" + str(num)
+#             plt.title(title,fontsize=8)
+#             plt.xticks([])
+#             plt.yticks([])
+#
+#
+#         # title = "node" + str(i)
+#         # plt.title(title,fontsize=12)
+#         # plt.xticks([])
+#         # plt.yticks([])
+#     plt.tight_layout()
+
 def drawTree(imgs,column,row,img_num):
     # draw a search tree
     gs0 = gridspec.GridSpec(column,1)
+    # print 'row',row
     gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
     gs2 = gridspec.GridSpecFromSubplotSpec(1,row[1],subplot_spec=gs0[1])
     gs3 = gridspec.GridSpecFromSubplotSpec(1,row[2],subplot_spec=gs0[2])
@@ -417,7 +467,6 @@ def drawTree(imgs,column,row,img_num):
             plt.xticks([])
             plt.yticks([])
 
-
         # title = "node" + str(i)
         # plt.title(title,fontsize=12)
         # plt.xticks([])
@@ -444,9 +493,9 @@ def visualTree(state_graph,path,state_dict):
             src_tmp = state_graph[j]
             src_tmpp = []
             for state in src_tmp:
-                if hp.determineWeight(state_dict[j],state_dict[state]) > 18:
+                if hp.determineWeight(state_dict[j],state_dict[state]) > 180:
                     continue
-                elif hp.determineWeight(state_dict[j],state_dict[state]) <= 18:
+                elif hp.determineWeight(state_dict[j],state_dict[state]) <= 180:
                     src_tmpp.append(state)
             src_list_tmp.append(src_tmpp)
             row_tmp = row_tmp + len(src_tmpp)
@@ -557,10 +606,9 @@ def visualSteps(state_dict,path):
     # h = 250 #cup
     # w = 300 #fig5
     # h = 300 #fig5
-    w = 450
-    h = 350
+    w = 600
+    h = 600
     imgs=[]
-    count = 0
     # canvas = init_canvas(w,h)
     # rot_mat = rotationFromImg(w,h,0)
     # img=drawPolygon(polygen2,stack2,canvas,rot_mat,0,count=0)
@@ -570,12 +618,7 @@ def visualSteps(state_dict,path):
         rot_mat = rotationFromImg(w,h,0)
         fold = state_dict[path[i]]["fold"]
         stack = state_dict[path[i]]["stack"]
-        if i == 0:
-            stack2 = state_dict[path[0]]["stack"]
-        else:
-            stack2 = state_dict[path[i-1]]["stack"]
-        if fold == "mountain" and (len(stack2)-len(stack)) % 2 == 1:
-            count = count + 1
+        count = state_dict[path[i]]['count']
 
         img=drawPolygon(state_dict[path[i]]["polygen"],stack,canvas,rot_mat,fold,count)
         imgs.append(img)
