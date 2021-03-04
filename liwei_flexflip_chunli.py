@@ -271,6 +271,29 @@ def descend_to_desktop(robot_arm,gripper_state,margin):
     move_waypoints(0,0,dz,0.4,robot_arm)
     rospy.sleep(3)
     print "=========== %s descend_to_desktop" % robot_arm
+def robhong_air_grasp(state):
+    if state == 1:
+        joint_values = [-66.9/180*pi, -67.2/180*pi, -136.9/180*pi, 23.1/180*pi, 64.9/180*pi, 170.6/180*pi]
+    elif state == 2:
+        joint_values = []
+    group1.set_joint_value_target(joint_values)
+    plan = group1.plan()
+    print "============ hong_air_grasp"
+    rospy.sleep(2)
+    scaled_traj1 = scale_trajectory_speed(plan, 0.5)
+    group1.execute(scaled_traj1)
+
+def robkong_air_grasp(state):
+    if state == 1:
+        joint_values = [45.80/180*pi, -108.10/180*pi, 111.35/180*pi, -113.3/180*pi, -72.05/180*pi, 227.2/180*pi]
+    elif state == 2:
+        joint_values = []
+    group2.set_joint_value_target(joint_values)
+    plan = group2.plan()
+    print "============ kong_air_grasp"
+    rospy.sleep(2)
+    scaled_traj2 = scale_trajectory_speed(plan, 0.5)
+    group2.execute(scaled_traj2)
 
 
 def fold(global_axis,degree,robot_arm):
@@ -692,9 +715,100 @@ def crease(trans_ref,pinch_z_angle,crease_axis,crease_length,startP2refP,z_axis,
   arduino_pub.publish(1)
   rospy.sleep(2)
 
+def crease_liwei(trans_ref,pinch_z_angle,crease_axis,crease_length,startP2refP,z_axis,margin_z,margin_offset):
+
+  ##IN CONVENTION: crease_axis and normal_axis have negative y axis value
+  # if crease_axis[1]>=0:
+  #   ori=1
+  # elif crease_axis[1]<0:
+  #   ori=1
 
 
-def scoop_fold(fixed_tag,fix_rot_angle,crease_axis,crease_perp_l,target2fix,scoop_angle,offset,tilt_angle):
+  normal_axis=np.cross(crease_axis,z_axis)  #perp_axis=[-0.7071,-0.7071,0] default z_axis=[0,0,1]
+
+  offset_unit=(0.015+margin_offset)
+  shift_unit=0.02
+
+  # make sure hong is at home
+  robhong_go_to_home(1)
+  # scoop uses single arm, currently hong_arm/robhong/group1
+  print "============ Start scooping"
+  # set gripper_hong's rigid finger to pinch state
+  arduino_pub = rospy.Publisher('/hybrid', UInt16, queue_size=1)
+  rospy.sleep(1)
+  arduino_pub.publish(121)
+
+  ##############hong_arm to start pose
+  listener.waitForTransform("world", "pinch_tip_hong", rospy.Time(), rospy.Duration(4.0))
+  (trans_pinchH,rot_) = listener.lookupTransform("world", "pinch_tip_hong", rospy.Time(0))
+
+
+  phi=pinch_z_angle
+  group_rotate_by_external_axis(trans_pinchH, [0, 0, 1], phi,"robhong")
+
+  listener.waitForTransform("world", "pinch_tip_hong", rospy.Time(), rospy.Duration(4.0))
+  (trans_pinchH,rot_) = listener.lookupTransform("world", "pinch_tip_hong", rospy.Time(0))
+  trans_pinch2tag = np.subtract(trans_ref,trans_pinchH).tolist()
+  trans_pinch2start = np.add(startP2refP,trans_pinch2tag).tolist()
+  #move to scooping x and y pose
+  move_waypoints(trans_pinch2start[0],trans_pinch2start[1],0.0,0.35,'robhong')
+  #hong_arm descend
+  descend_to_desktop('robhong','pinch',margin_z)
+
+ ##################  start to make a crease along defined axis
+  pinch_dist=[normal_axis[0]*offset_unit,normal_axis[1]*offset_unit,normal_axis[2]*offset_unit]
+  shift_dist=[crease_axis[0]*shift_unit,crease_axis[1]*shift_unit,crease_axis[2]*shift_unit]
+  #liwei: add margin_unit and margin_dist
+  margin_unit=-0.0015
+  margin_dist=[normal_axis[0]*margin_unit,normal_axis[1]*margin_unit,normal_axis[2]*margin_unit]
+  num_attempts=int(crease_length//shift_unit)
+  print "====pinch attempts"
+  print num_attempts
+  for i in range(0,num_attempts):
+    listener.waitForTransform("world", "pinch_tip_hong", rospy.Time(), rospy.Duration(4.0))
+    (trans_pH,rot_) = listener.lookupTransform("world", "pinch_tip_hong", rospy.Time(0))
+    (trans_pK,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+    trans_delta=np.subtract(trans_pK,trans_pH).tolist()
+    print "======== trans_pH", trans_pH
+    print "======== trans_pK", trans_pK
+    print "======== trans_delta", trans_delta
+    dist=sqrt(trans_delta[0]**2+trans_delta[1]**2)
+    print "======== dist between tips ", dist
+    #liwei: change 0.024 to 0.03
+    if dist>=0.03:
+      move_waypoints(pinch_dist[0],pinch_dist[1],pinch_dist[2],0.2,"robhong")
+      arduino_pub.publish(112)
+      rospy.sleep(6)
+      arduino_pub.publish(111)
+      rospy.sleep(3)
+      move_waypoints(-pinch_dist[0],-pinch_dist[1],-pinch_dist[2],0.2,"robhong")
+      move_waypoints(margin_dist[0],margin_dist[1],margin_dist[2],0.2,"robhong")
+    else:
+      rospy.sleep(3)
+    move_waypoints(shift_dist[0],shift_dist[1],shift_dist[2],0.2,"robhong")
+
+  move_waypoints(pinch_dist[0],pinch_dist[1],pinch_dist[2],0.2,"robhong")
+  arduino_pub.publish(112)
+  rospy.sleep(6)
+  arduino_pub.publish(111)
+  rospy.sleep(2)
+
+  move_waypoints(shift_dist[0],shift_dist[1],shift_dist[2],0.2,"robhong")
+
+
+  robhong_go_to_home(1)
+
+  arduino_pub.publish(211)
+  rospy.sleep(3)
+  move_waypoints(0,0,0.01,0.1,'robkong')
+  move_waypoints(0,0.2,0.02,0.3,'robkong')
+  robkong_go_to_home(1)
+
+  arduino_pub.publish(1)
+  rospy.sleep(2)
+
+
+def scoop_fold(fixed_tag,fix_rot_angle,crease_axis,crease_perp_l,target2fix,scoop_angle,fix_margin,offset,tilt_angle):
 
 
   z=[0,0,1]
@@ -711,16 +825,21 @@ def scoop_fold(fixed_tag,fix_rot_angle,crease_axis,crease_perp_l,target2fix,scoo
   if scoop_angle>0:
     sign=-1
   elif scoop_angle<0:
-    sign=1
+    sign=-1
 
   ##### initialize
   listener.waitForTransform("world", fixed_tag, rospy.Time(), rospy.Duration(4.0))
   (trans_fixed_tag,rot_) = listener.lookupTransform("world", fixed_tag, rospy.Time(0))
   (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
 
-  trans_target_tag = [trans_fixed_tag[0]+target2fix[0],trans_fixed_tag[1]+target2fix[1],trans_fixed_tag[2]]
-  #### fix the paper before scooping
-  fix(trans_fixed_tag,fix_rot_angle,'robhong')
+  trans_target2tag = [trans_fixed_tag[0]+target2fix[0],trans_fixed_tag[1]+target2fix[1],trans_fixed_tag[2]]
+  # trans_fix= np.add(trans_fixed_tag,fix_margin).tolist()
+  trans_fix = [trans_fixed_tag[0]+fix_margin[0],trans_fixed_tag[1]+fix_margin[1],trans_fixed_tag[2]+fix_margin[2]]
+
+  #### fix the paper before scooping by hong
+  print "trans_fix",trans_fix
+  fix(trans_fix,fix_rot_angle,'robhong')
+  rospy.sleep(2)
   ##############kong_arm to initial pose
   phi= scoop_angle
   group_rotate_by_external_axis(trans_pinch, [0, 0, 1.0], phi,"robkong")
@@ -729,84 +848,185 @@ def scoop_fold(fixed_tag,fix_rot_angle,crease_axis,crease_perp_l,target2fix,scoo
   listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
   (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
 
-  trans_pinch2tag = np.subtract(trans_target_tag,trans_pinch).tolist()
-  tag_dist=0.0282
-  move_waypoints(trans_pinch2tag[0]+3.6*tag_dist,trans_pinch2tag[1],0,0.3,'robkong')
+  trans_pinch2tag = np.subtract(trans_target2tag,trans_pinch).tolist()
+  move_waypoints(trans_pinch2tag[0]+normal_axis[0]*0.01,trans_pinch2tag[1]+normal_axis[0]*0.01,0,0.3,'robkong')
   #kong_arm descend
   descend_to_desktop('robkong','pinch2',0.11)
 
   ###### start scooping pinch
-  # normal_axis=[0,1,0]
-  ###################################offset_unit is the key parameter to tune
   offset_unit=offset*sign
   pinch_dist=[normal_axis[0]*offset_unit,normal_axis[1]*offset_unit,normal_axis[2]*offset_unit]
-  move_waypoints(pinch_dist[0],pinch_dist[1],0,0.2,'robkong')
-  rospy.sleep(1)
+  move_waypoints(pinch_dist[0],pinch_dist[1],0,0.3,'robkong')
+
   arduino_pub.publish(203)
   rospy.sleep(5)
 
-  ############################################ start folding
-  move_waypoints(0,0,0.03,0.2,'robkong')
-  degree=50
-  global_axis=[1,0,0]
-  center_point=[trans_target_tag[0],trans_target_tag[1]-0.12,trans_target_tag[2]]
-  group_rotate_by_external_axis(center_point,global_axis,degree,'robkong')
-  rospy.sleep(1)
-  # move_waypoints(0,-0.01,0,0.2,'robkong')
+  ############################################ start regrasp
+  ### refined: chunli
 
-  # move along crease
+  # let hong ready for regrasp
+  rospy.sleep(2)
+  robhong_air_grasp(1)
+  rospy.sleep(1)
+  arduino_pub.publish(101)
+  # lift paper and make gripper vertical
+  move_waypoints(0,0,0.18,0.3,'robkong')
+  rospy.sleep(2)
+  degree=45
+  global_axis=[1,0,0]
+
   listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
   (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
-  degree=-20
-  global_axis=[1,0,0]
-  center_point=trans_pinch
-  group_rotate_by_external_axis(center_point,global_axis,degree,'robkong')
+  group_rotate_by_external_axis(trans_pinch,crease_axis,degree,'robkong')
+  rospy.sleep(1)
 
+  ############ regrasp1
+  # get gripper ready
+
+  phi=-55+scoop_angle
+  listener.waitForTransform("world", "rigid_tip_hong", rospy.Time(), rospy.Duration(4.0))
+  (trans_rigH,rot_) = listener.lookupTransform("world", "rigid_tip_hong", rospy.Time(0))
+  group_rotate_by_external_axis(trans_rigH, [0, 0, 1], phi,"robhong")
+
+  listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
+  (trans_pinch_kong,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+  (trans_pinch_hong,rot_) = listener.lookupTransform("world", "pinch_tip_hong", rospy.Time(0))
+
+  delta_z=-trans_pinch_hong[2]+trans_pinch_kong[2]-0.04
+  delta_x=-trans_pinch_hong[0]+trans_pinch_kong[0]
+  delta_y=-trans_pinch_hong[1]+trans_pinch_kong[1]-0.1
+  # move_waypoints(0,0,delta_z,0.4,'robhong')
+  move_waypoints(delta_x,delta_y,delta_z,0.4,'robhong')
+  move_waypoints(0,0.1,0,0.4,'robhong')
+  arduino_pub.publish(103)
+  rospy.sleep(6)
+
+  ######## let robkong ready for regrasp
+  arduino_pub.publish(201)
+  rospy.sleep(5)
+  robkong_air_grasp(1)
+
+  #################### regrasp 2
+  phi= scoop_angle
+  listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
+  (trans_pinch_kong,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+  group_rotate_by_external_axis(trans_pinch, [0, 0, 1.0], phi,"robkong")
+  rospy.sleep(3)
+
+  listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
+  (trans_pinch_kong,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+  (trans_pinch_hong,rot_) = listener.lookupTransform("world", "pinch_tip_hong", rospy.Time(0))
+
+  delta_z=trans_pinch_hong[2]-trans_pinch_kong[2]+0.030
+  delta_x=trans_pinch_hong[0]-trans_pinch_kong[0]
+  delta_y=trans_pinch_hong[1]-trans_pinch_kong[1]
+
+  move_waypoints(delta_x,delta_y,0,0.3,'robkong')
+  move_waypoints(0,0,delta_z,0.3,'robkong')
+  arduino_pub.publish(203)
+  rospy.sleep(4)
+  arduino_pub.publish(101)
+  rospy.sleep(3)
+
+  ## robhong_go_home
+  move_waypoints(0.2,-0.2,-0.01,0.4,'robhong')
+  rospy.sleep(2)
+  robhong_go_to_home(1)
+
+
+  #paper descend above the desk
+  descend_to_desktop('robkong','pinch',0.05)
+
+  #################### fix again
+  listener.waitForTransform("world", fixed_tag, rospy.Time(), rospy.Duration(4.0))
+  (trans_fixed_tag,rot_) = listener.lookupTransform("world", fixed_tag, rospy.Time(0))
+  (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+
+  trans_fix = [trans_fixed_tag[0]+fix_margin[0],trans_fixed_tag[1]+fix_margin[1],trans_fixed_tag[2]+fix_margin[2]]
+  print "trans_fix",trans_fix
+  fix(trans_fix,fix_rot_angle,'robhong')
+  rospy.sleep(2)
+
+  ## robkong move along crease perp line
   offset_unit=crease_perp_l*sign
   pinch_dist=[normal_axis[0]*offset_unit,normal_axis[1]*offset_unit,normal_axis[2]*offset_unit]
   move_waypoints(pinch_dist[0],pinch_dist[1],0,0.2,'robkong')
   rospy.sleep(2)
-
+  ## robkong fix the paper
   listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
-  (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
-  delta_z=-trans_pinch[2]+0.712
-  move_waypoints(0,0,delta_z,0.03,'robkong')
-
-  # let hong go home
+  (trans_pinch_kong,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+  delta_z=-trans_pinch_kong[2]+0.71
+  move_waypoints(0,0,delta_z,0.3,'robkong')
+  arduino_pub.publish(203)
+  rospy.sleep(3)
+  arduino_pub.publish(212)
+  ##robhong go home
   robhong_go_to_home(1)
+  # ############## tilt more to fix the tag
+  rot4_angle=70
+  fold(crease_axis,rot4_angle,'robkong')
 
-  # tilt more to fix the tag
+
+def scoop_turn_over(ref_tag,fix_rot_angle,crease_axis,target2fix,scoop_angle,fix_margin,offset):
+  z=[0,0,1]
+  normal_axis=np.cross(z,crease_axis)
+
+  # set gripper kong to pinch state
+  arduino_pub = rospy.Publisher('/hybrid', UInt16, queue_size=1)
+  rospy.sleep(3)
+  arduino_pub.publish(1)
+  rospy.sleep(3)
+  arduino_pub.publish(221)
+  rospy.sleep(2)
+
+  ##### initialize
+  listener.waitForTransform("world", ref_tag, rospy.Time(), rospy.Duration(4.0))
+  (trans_ref_tag,rot_) = listener.lookupTransform("world", ref_tag, rospy.Time(0))
+  (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
+
+  trans_target2tag = [trans_ref_tag[0]+target2fix[0]+normal_axis[0]*0.01,trans_ref_tag[1]+target2fix[1]+normal_axis[1]*0.01,trans_ref_tag[2]]
+  # trans_fix= np.add(trans_fixed_tag,fix_margin).tolist()
+  trans_fix = [trans_ref_tag[0]+fix_margin[0],trans_ref_tag[1]+fix_margin[1],trans_ref_tag[2]+fix_margin[2]]
+
+  #### fix the paper before scooping by hong
+  print "trans_fix",trans_fix
+  fix(trans_fix,fix_rot_angle,'robhong')
+  rospy.sleep(2)
+  ##############kong_arm to initial pose
+  phi= scoop_angle
+  group_rotate_by_external_axis(trans_pinch, [0, 0, 1.0], phi,"robkong")
+
+  #move to top of target tag
   listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
   (trans_pinch,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
-  degree=tilt_angle
-  global_axis=[1,0,0]
-  center_point=trans_pinch
-  group_rotate_by_external_axis(center_point,global_axis,degree,'robkong')
 
+  trans_pinch2tag = np.subtract(trans_target2tag,trans_pinch).tolist()
+  move_waypoints(trans_pinch2tag[0],trans_pinch2tag[1],0,0.3,'robkong')
+  #kong_arm descend
+  descend_to_desktop('robkong','pinch2',0.11)
 
+  ###### start scooping pinch
+  offset_unit=offset
+  pinch_dist=[-normal_axis[0]*offset_unit,-normal_axis[1]*offset_unit,normal_axis[2]*offset_unit]
+  move_waypoints(pinch_dist[0],pinch_dist[1],0,0.3,'robkong')
 
-def turn_over(robot_arm,angle,margin):
-  if robot_arm == "robhong":
-    group = group1
-    target="pinch_tip_hong"
-    robkong_go_to_home(1)
-  elif robot_arm == "robkong":
-    group = group2
-    target="pinch_tip_kong"
-    robhong_go_to_home(1)
-  else:
-    print "robot_arm input error, please input valid robot_arm name"
+  arduino_pub.publish(203)
+  rospy.sleep(5)
 
-
-  move_waypoints(0,0,0.3,0.35,robot_arm)
+  robhong_go_to_home(1)
+  #################Second part to turn over
+  ############################## lift->rotate->place
+  move_waypoints(0,0,0.3,0.35,'robkong')
   rospy.sleep(1)
 
-  listener.waitForTransform("world", target, rospy.Time(), rospy.Duration(4.0))
-  (trans_pinchH,rot_) = listener.lookupTransform("world", target, rospy.Time(0))
+  listener.waitForTransform("world", "pinch_tip_kong", rospy.Time(), rospy.Duration(4.0))
+  (trans_pinchH,rot_) = listener.lookupTransform("world", "pinch_tip_kong", rospy.Time(0))
 
-  group_rotate_by_external_axis(trans_pinchH, [1, 0, 0], angle,robot_arm)
+  turn_over_degree=90
+  group_rotate_by_external_axis(trans_pinchH, crease_axis, turn_over_degree,'robkong')
 
-  descend_to_desktop(robot_arm,'pinch',margin)
+  margin_z=0.05
+  descend_to_desktop('robkong','pinch',margin_z)
 
   arduino_pub = rospy.Publisher('/hybrid', UInt16, queue_size=1)
   rospy.sleep(3)
@@ -895,23 +1115,23 @@ def transCentertoTag(tag_id):
     if tag_id == 'tag_22':
         pos = np.array([0,0,0])
         return pos,rot_center2centerTag
-    if tag_ig == "tag_17":
-        pos = np.array([0.0775,0.121,0])
-        return pos,rot_center2centerTag
-    if tag_id == "tag_15":
-        pos = np.array([-0.0775,0.121,0])
-        return pos,rot_center2centerTag
-    if tag_id == "tag_21":
-        pos = np.array([-0.0775,0,0])
-        return pos,rot_center2centerTag
-    if tag_id == "tag_23":
-        pos = np.array([0.0775,0,0])
-        return pos,rot_center2centerTag
-    if tag_id == "tag_27":
+    if tag_id == "tag_17":
         pos = np.array([-0.0775,-0.121,0])
         return pos,rot_center2centerTag
+    if tag_id == "tag_15":
+        pos = np.array([0.0775-0.121,0])
+        return pos,rot_center2centerTag
+    if tag_id == "tag_21":
+        pos = np.array([0.0775,0,0])
+        return pos,rot_center2centerTag
+    if tag_id == "tag_23":
+        pos = np.array([-0.0775,0,0])
+        return pos,rot_center2centerTag
+    if tag_id == "tag_27":
+        pos = np.array([0.0775,0.121,0])
+        return pos,rot_center2centerTag
     if tag_id == "tag_29":
-        pos = np.array([-0.0775,0.121,0])
+        pos = np.array([0.0775,-0.121,0])
         return pos,rot_center2centerTag
 
 def get_tag_info(referenced_tag,tag_id):
@@ -922,7 +1142,7 @@ def get_tag_info(referenced_tag,tag_id):
   rot_mat1=listener.fromTranslationRotation(trans1, rot1)
   rot_mat1 = rot_mat1[:3,:3]
   # print "rot1",rot_mat1
-  trans,rot = transCentertoTag(trans1,rot_mat1)
+  trans,rot = transCentertoTag(tag_id)
   # listener.waitForTransform("world", reference_tag, rospy.Time(), rospy.Duration(4.0))
   # (trans2,rot2) = listener.lookupTransform("world", reference_tag, rospy.Time(0))
   # # print "trans2",trans2
@@ -938,15 +1158,70 @@ def start_robot():
 
   init()
 ### verified step:0
-  # test_frame_accuracy('robkong','tag_15')
-  # robkong_go_to_home(1)
+  # ref_tag="tag_21"
+  # grasp_margin=0.07
+  # transLocal2Tag,rotLocal2Tag=transCentertoTag(ref_tag)
+  # parameters=pg.get_parameters(transLocal2Tag,rotLocal2Tag,"step0")
+  # if len(parameters)==1:
+  #     #no need to turn over
+  #     crease_axis=parameters[0][0]
+  #     crease_perp_l=parameters[0][1]-grasp_margin*2
+  #     grasp_method=parameters[0][2]
+  #     angle=parameters[0][3]
+  #     crease_length=parameters[0][4]
+  #     trans_target2ref=parameters[0][5]
+  #     startP2refP=parameters[0][6]
+  #     crease_rot_angle=parameters[0][7]
+  #     print "crease axis",crease_axis
+  #     print "crease_perp_l",crease_perp_l
+  #     print "grasp method",grasp_method
+  #     print "angle",angle
+  #     print "crease_length",crease_length
+  #     print "trans_target2ref",trans_target2ref
+  #     print "startP2refP",startP2refP
+  #     print "crease rot angle",crease_rot_angle
 
-  # test_frame_accuracy('robhong','tag_15')
-  # robhong_go_to_home(1)
-  ref_tag="tag_22"
-  grasp_margin=0.04
+  # # trans_target2ref=[0.10,-0.15,0]  # in world frame
+  # trans_fix2ref=[0.15,-0.13,0]    # in world frame
+  # fix_margin = [0.007,0.007,0.0]
+  # listener.waitForTransform("world", ref_tag, rospy.Time(), rospy.Duration(4.0))
+  # (trans_ref,rot_) = listener.lookupTransform("world", ref_tag, rospy.Time(0))
+
+  # flexflip_liwei(ref_tag,trans_target2ref,angle, trans_fix2ref, 120.0,crease_axis, crease_perp_l,margin=[0.007,0.007,0.001])
+  # crease_liwei(trans_ref,crease_rot_angle,crease_axis,crease_length,startP2refP,z_axis=[0,0,1],margin_z=-0.01,margin_offset=0.01)
+
+### verified step:1 turn over
+  # ref_tag="tag_21"
+  # grasp_margin=0.065
+  # transLocal2Tag,rotLocal2Tag=transCentertoTag(ref_tag)
+  # parameters=pg.get_parameters(transLocal2Tag,rotLocal2Tag,"step1")
+  # if len(parameters)==3:
+  #     #turn it over
+  #     print "len", len(parameters)
+  #     crease_axis=parameters[0][0]
+  #     crease_perp_l=parameters[0][1]-grasp_margin*2
+  #     grasp_method=parameters[0][2]
+  #     angle=parameters[0][3]
+  #     crease_length=parameters[0][4]
+  #     trans_target2ref=parameters[0][5]
+  #     startP2refP=parameters[0][6]
+  #     crease_rot_angle=parameters[0][7]
+  #     print "crease axis",crease_axis
+  #     print "crease_perp_l",crease_perp_l
+  #     print "grasp method",grasp_method
+  #     print "angle",angle
+  #     print "crease_length",crease_length
+  #     print "trans_target2ref",trans_target2ref
+  #     print "startP2refP",startP2refP
+  #     print "crease rot angle",crease_rot_angle
+  # trans_fix2ref=[0.15,-0.11,0]
+  # scoop_turn_over(ref_tag,120,crease_axis,trans_target2ref,angle,trans_fix2ref,offset=0.04)
+##### verified step:3 scoop fold
+
+  ref_tag="tag_21"
+  grasp_margin=0.065
   transLocal2Tag,rotLocal2Tag=transCentertoTag(ref_tag)
-  parameters=pg.get_parameters(transLocal2Tag,rotLocal2Tag,"step0")
+  parameters=pg.get_parameters(transLocal2Tag,rotLocal2Tag,"step3")
   if len(parameters)==1:
       #no need to turn over
       crease_axis=parameters[0][0]
@@ -965,33 +1240,23 @@ def start_robot():
       print "trans_target2ref",trans_target2ref
       print "startP2refP",startP2refP
       print "crease rot angle",crease_rot_angle
-  # elif len(parameters)>1:
-  #     #turn over
 
-#### verified step: diagonal flexflip
-  # crease_axis= [-0.7071, -0.7071, 0]
-  # crease_perp_l=0.19
-  # crease_length=0.27
-  # startP2refP=[0.095,0.03,0] # in world frame
-
-  # trans_target2ref=[0.10,-0.15,0]  # in world frame
-  trans_fix2ref=[0.065,-0.135,0]    # in world frame
-
+  trans_fix2ref=[0.145,0.02,0]    # in world frame
   listener.waitForTransform("world", ref_tag, rospy.Time(), rospy.Duration(4.0))
   (trans_ref,rot_) = listener.lookupTransform("world", ref_tag, rospy.Time(0))
 
-  flexflip_liwei(ref_tag,trans_target2ref,angle, trans_fix2ref, 120.0,crease_axis, crease_perp_l,margin=[0.007,0.007,-0.002])
+  scoop_fold(ref_tag,-150,crease_axis,crease_perp_l,trans_target2ref,angle,trans_fix2ref,offset=0.02,tilt_angle=40)
+  crease_liwei(trans_ref,crease_rot_angle,crease_axis,crease_length,startP2refP,z_axis=[0,0,1],margin_z=-0.01,margin_offset=0.01)
 
-  crease(trans_ref,crease_rot_angle,crease_axis,crease_length,startP2refP,z_axis=[0,0,1],margin_z=0.005,margin_offset=0.01)
 
 #### END robotic origmai
 
-  # robhong_go_to_home(1)
-  # robkong_go_to_home(1)
-  # arduino_pub = rospy.Publisher('/hybrid', UInt16, queue_size=1)
-  # rospy.sleep(3)
-  # arduino_pub.publish(1)
-  # exit()
+  robhong_go_to_home(1)
+  robkong_go_to_home(1)
+  arduino_pub = rospy.Publisher('/hybrid', UInt16, queue_size=1)
+  rospy.sleep(3)
+  arduino_pub.publish(1)
+  exit()
 
 if __name__=='__main__':
   start_robot()
