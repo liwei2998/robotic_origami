@@ -6,42 +6,49 @@ from shapely.geometry import *
 import copy
 from compiler.ast import flatten
 ###########################public functions##############################
-def determineWeight(state1,state2):
+def flatArea(state):
+    #return the flat area of the state
+    area = 0.0
+    for i in range(len(state['stack'])):
+        area_tmp = 0.0
+        for j in range(len(state['stack'][i])):
+            facet = state['stack'][i][j]
+            line = LineString(state['polygen'][facet])
+            poly = Polygon(line)
+            area_tmp += poly.area
+        if area_tmp > area:
+            area = area_tmp
+    return area
+
+def determineWeight(state2):
     #an edge connect state1 and state2
     #return the weight of this edge
-    # 8 kinds of transitions
-    #weight is the distance, the lower the better
+    #4 situation score, divide flat area
+    #weight is the score, the larger the better
 
-    #1: flexflip, valley, non-reflect
-    if state2['method'] == 'flexflip' and state2['fold'] == 'valley' and state2['reflect'] == 0:
+    #1: valley, non-reflect
+    if state2['fold'] == 'valley' and state2['reflect'] == 0:
         weight = 1
-    #2: flexflip, valley, reflect
-    if state2['method'] == 'flexflip' and state2['fold'] == 'valley' and state2['reflect'] == 1:
-        weight = 5
-    #3: flexflip, mountain, non-reflect
-    if state2['method'] == 'flexflip' and state2['fold'] == 'mountain' and state2['reflect'] == 0:
-        weight = 3
-    #4: flexflip, mountain, reflect
-    if state2['method'] == 'flexflip' and state2['fold'] == 'mountain' and state2['reflect'] == 1:
-        weight = 7
-    #5: scooping, valley, non-reflect
-    if state2['method'] == 'scooping' and state2['fold'] == 'valley' and state2['reflect'] == 0:
+    #2: mountain, non-reflect
+    if state2['fold'] == 'mountain' and state2['reflect'] == 0:
         weight = 2
-    #6: scooping, valley, reflect
-    if state2['method'] == 'scooping' and state2['fold'] == 'valley' and state2['reflect'] == 1:
-        weight = 6
-    #7: scooping, mountain, non-reflect
-    if state2['method'] == 'scooping' and state2['fold'] == 'mountain' and state2['reflect'] == 0:
-        weight = 4
-    #8: scooping, mountain, reflect
-    if state2['method'] == 'scooping' and state2['fold'] == 'mountain' and state2['reflect'] == 1:
-        weight = 8
-    #if overlap 1
-    if state2['overlap'] == 1:
-        weight = weight + 10
+    #3: valley, reflect
+    if state2['fold'] == 'valley' and state2['reflect'] == 1 and state2['method'] == "flexflip":
+        weight = 1
+    #4: mountain, reflect
+    if state2['fold'] == 'mountain' and state2['reflect'] == 1 and state2['method'] == "flexflip":
+        weight = 2
+    #5: reflect, scooping
+    if state2['reflect'] == 1 and state2['method'] == "scooping":
+        weight = 1000000000
+
+    weight = weight / (flatArea(state2) /(420*210))
+    #if overlap1
+    # if state2['overlap'] == 1:
+    #     weight = weight / 10
     #if overlap2
     if state2['overlap'] == 2:
-        weight = weight + 20
+        weight = 1000000000
     return weight
 ###########################public functions##############################
 
@@ -89,7 +96,7 @@ def WeightedGraph(state_dict,state_graph):
     for state in state_graph.keys():
         graph.setdefault(state,{})
         for kid in state_graph[state]:
-            weight = determineWeight(state_dict[state],state_dict[kid])
+            weight = determineWeight(state_dict[kid])
             # print "weight",weight
             graph[state].setdefault(kid,weight)
         #save the last node
@@ -107,6 +114,10 @@ def CutedGraph(state_dict,state_graph_culled,unique_paths):
             for node2 in state_graph_culled[node1]:
                 if node2 in paths:
                     graph[node1].append(node2)
+                    # #save the last node
+                    # if node2 not in state_graph_culled.keys():
+                    #     graph.setdefault(node2,[])
+
     return graph
 #*******************************cut tree************************************#
 def ifNodeSameorSymmetric(state_node1,state_node2):
@@ -198,3 +209,71 @@ def cutedPaths(paths,state_dict):
     return unique_paths
 #*******************************cut tree************************************#
 ################################bfs plan functions################################
+
+################################visualization functions################################
+def decideRows(row_max,row):
+    #use for drawing tree, decides the num of rows in each layer
+    new_row = []
+    if row_max % 2 == 0:
+        for i in range(len(row)):
+            if row[i] % 2 == 0:
+                new_row.append(row_max*2)
+            else:
+                new_row.append(row_max*2-1)
+    elif row_max % 2 == 1:
+        for i in range(len(row)):
+            if row[i] % 2 == 1:
+                new_row.append(row_max*2)
+            else:
+                new_row.append(row_max*2-1)
+    return new_row
+# def drawTree(imgs,column,row,img_num):
+#     # draw a search tree
+#     gs0 = gridspec.GridSpec(column,1)
+#     row_max = max(row)
+#     print 'row_max',row_max
+#     new_row = hp.decideRows(row_max,row)
+#     gs1 = gridspec.GridSpecFromSubplotSpec(1,new_row[0],subplot_spec=gs0[0])
+#     gs2 = gridspec.GridSpecFromSubplotSpec(1,new_row[1],subplot_spec=gs0[1])
+#     gs3 = gridspec.GridSpecFromSubplotSpec(1,new_row[2],subplot_spec=gs0[2])
+#     gs4 = gridspec.GridSpecFromSubplotSpec(1,new_row[3],subplot_spec=gs0[3])
+#     gs5 = gridspec.GridSpecFromSubplotSpec(1,new_row[4],subplot_spec=gs0[4])
+#     gs6 = gridspec.GridSpecFromSubplotSpec(1,new_row[5],subplot_spec=gs0[5])
+#     # ax1 = plt.subplot(gs1[0,1])
+#     # ax1.imshow(imgs[0][0])
+#     plt.title("state1",fontsize=8)
+#     plt.xticks([])
+#     plt.yticks([])
+#     num = 0
+#     print 'new_row',new_row
+#     for k in range(0,len(row)):
+#         print 'row[k]',row[k]
+#         for i in range(0,row[k]):
+#             print 'i',2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)
+#             if k == 0:
+#                 ax = plt.subplot(gs1[0,2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)])
+#             elif k == 1:
+#                 ax = plt.subplot(gs2[0,2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)])
+#             elif k == 2:
+#                 ax = plt.subplot(gs3[0,2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)])
+#             elif k == 3:
+#                 ax = plt.subplot(gs4[0,2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)])
+#             elif k == 4:
+#                 ax = plt.subplot(gs5[0,2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)])
+#             elif k == 5:
+#                 ax = plt.subplot(gs6[0,2*i+int((new_row[k]+0.5)/2)-2*int((row[k]+0.5)/2)])
+#             ax.imshow(imgs[num][0])
+#             title = imgs[num][1]
+#             num = num + 1
+#             # title = "node" + str(num)
+#             plt.title(title,fontsize=8)
+#             plt.xticks([])
+#             plt.yticks([])
+#
+#
+#         # title = "node" + str(i)
+#         # plt.title(title,fontsize=12)
+#         # plt.xticks([])
+#         # plt.yticks([])
+#     plt.tight_layout()
+################################visualization functions################################

@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 import time
 import helper as hp
 #################### simple hat
-# # rot = [[0,-1,0],[1,0,0],[0,0,1]]
+# rot = [[0,-1,0],[1,0,0],[0,0,1]]
 # stack1 = [['1','2','3','4','5','6','7','8']]
-# #counterclock wise
+# # #counterclock wise
 # polygen1 = {"1":[[-105,105],[105,105],[105,150],[-105,150]],
 #             "2":[[0,0],[105,105],[-105,105]],
 #             "3":[[0,0],[-105,105],[-105,0]],
@@ -50,6 +50,14 @@ import helper as hp
 #                    '6':['5','7','8'],
 #                    '7':['6','4'],
 #                    '8':['6']}
+# crease_angle = {'1':{'2':'+'},
+#                 '2':{'1':'+','3':'-','4':'-'},
+#                 '3':{'2':'-','5':'-'},
+#                 '4':{'2':'-','7':'-'},
+#                 '5':{'3':'-','6':'+'},
+#                 '6':{'5':'+','7':'+','8':'+'},
+#                 '7':{'6':'+','4':'-'},
+#                 '8':{'6':'+'}}
 # ##############plane
 # stack1 = [['1','2','3','4'],['5','6','7','8']]
 # #counterclock wise
@@ -103,103 +111,124 @@ import helper as hp
 #             "3":[[100,-100],[0,0],[-100,-100]],
 #             "4":[[0,0],[-100,-100],[-100,100]]}
 # stack1 = [["1","2","3","4"]]
-#################### fig.7 plane
-# global stack2
-# global polygen2
-stack1 = [['1','2','3','4','5','6','7','8']]
-#counterclock wise
-polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
-            "2":[[-75,30],[-150,30],[-150,-45]],
-            "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
-            "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
-            "5":[[0,105],[0,-105],[75,-105],[75,30]],
-            "6":[[75,30],[75,-105],[150,-105],[150,-45]],
-            "7":[[75,30],[150,-45],[150,30]],
-            "8":[[75,30],[150,30],[150,105],[0,105]]
-            }
-facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
-           "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
-           "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
-           "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
-           "5":[[[0,105],[0,-105]],[[75,-105],[75,30]],[[75,30],[0,105]]],
-           "6":[[[75,30],[75,-105]],[[150,-45],[75,30]]],
-           "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
-           "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
-           }
-graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
-              "2":[[[-150,30],[-150,-45]]],
-              "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
-              "4":[[[-75,-105],[0,-105]]],
-              "5":[[[0,-105],[75,-105]]],
-              "6":[[[150,-105],[150,-45]],[[75,-105],[150,-105]]],
-              "7":[[[150,-45],[150,30]]],
-              "8":[[[150,30],[150,105]],[[150,105],[0,105]]]}
-crease_edge = {}
-adjacent_facets = {'1':['2','4'],
-                   '2':['1','3'],
-                   '3':['2','4'],
-                   '4':['1','3','5'],
-                   '5':['4','6','8'],
-                   '6':['5','7'],
-                   '7':['6','8'],
-                   '8':['5','7']}
-# crease_angle = {'1':{'2':'-','4':'-'},
-#                 '2':{'1':'-','3':'-'},
-#                 '3':{'2':'-','4':'-'},
-#                 '4':{'1':'-','3':'-','5':'+'},
-#                 '5':{'4':'+','8':'-','6':'-'},
-#                 '6':{'5':'-','7':'-'},
-#                 '7':{'6':'-','8':'+'},
-#                 '8':{'7':'+','5':'-'}}
-crease_angle = {'1':{'2':'-','4':'+'},
-                '2':{'1':'-','3':'+'},
-                '3':{'2':'+','4':'-'},
-                '4':{'1':'+','3':'-','5':'+'},
-                '5':{'4':'+','8':'+','6':'-'},
-                '6':{'5':'-','7':'+'},
-                '7':{'6':'+','8':'-'},
-                '8':{'7':'-','5':'+'}}
-# ################### fig7. cup
+################### fig.7 plane
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
-# polygen1 = {"1":[[50,50],[0,100],[-50,50]],
-#             "2":[[-33,0],[-50,50],[-100,0]],
-#             "3":[[-33,0],[-50,50],[50,50],[33,0]],
-#             "4":[[100,0],[50,50],[33,0]],
-#             "5":[[-33,0],[-100,0],[-50,-50]],
-#             "6":[[-33,0],[-50,-50],[50,-50],[33,0]],
-#             "7":[[100,0],[50,-50],[33,0]],
-#             "8":[[50,-50],[0,-100],[-50,-50]]
+# polygen1 = {"1":[[0,105],[-150,105],[-150,30],[-75,30]],
+#             "2":[[-75,30],[-150,30],[-150,-45]],
+#             "3":[[-150,-45],[-150,-105],[-75,-105],[-75,30]],
+#             "4":[[-75,30],[-75,-105],[0,-105],[0,105]],
+#             "5":[[0,105],[0,-105],[75,-105],[75,30]],
+#             "6":[[75,30],[75,-105],[150,-105],[150,-45]],
+#             "7":[[75,30],[150,-45],[150,30]],
+#             "8":[[75,30],[150,30],[150,105],[0,105]]
 #             }
-# facets1 = {"1":[[[-50,50],[50,50]]],
-#            "2":[[[-100,0],[-33,0]],[[-33,0],[-50,50]]],
-#            "3":[[[-50,50],[-33,0]],[[-33,0],[33,0]],[[33,0],[50,50]],[[50,50],[-50,50]]],
-#            "4":[[[50,50],[33,0]],[[33,0],[100,0]]],
-#            "5":[[[-50,-50],[-33,0]],[[-33,0],[-100,0]]],
-#            "6":[[[-33,0],[-50,-50]],[[-50,-50],[50,-50]],[[50,-50],[33,0]],[[33,0],[-33,0]]],
-#            "7":[[[100,0],[33,0]],[[33,0],[50,-50]]],
-#            "8":[[[50,-50],[-50,-50]]]
+# facets1 = {"1":[[[-150,30],[-75,30]],[[-75,30],[0,105]]],
+#            "2":[[[-150,-45],[-75,30]],[[-75,30],[-150,30]]],
+#            "3":[[[-75,-105],[-75,30]],[[-75,30],[-150,-45]]],
+#            "4":[[[-75,30],[-75,-105]],[[0,-105],[0,105]],[[0,105],[-75,30]]],
+#            "5":[[[0,105],[0,-105]],[[75,-105],[75,30]],[[75,30],[0,105]]],
+#            "6":[[[75,30],[75,-105]],[[150,-45],[75,30]]],
+#            "7":[[[75,30],[150,-45]],[[150,30],[75,30]]],
+#            "8":[[[75,30],[150,30]],[[0,105],[75,30]]]
 #            }
-# adjacent_facets = {'1':['3'],
-#                    '2':['3','5'],
-#                    '3':['1','2','4','6'],
-#                    '4':['3','7'],
-#                    '5':['2','6'],
-#                    '6':['3','5','7','8'],
-#                    '7':['4','6'],
-#                    '8':['1']}
+# graph_edge = {"1":[[[-150,30],[-150,105]],[[-150,105],[0,105]]],
+#               "2":[[[-150,30],[-150,-45]]],
+#               "3":[[[-150,-45],[-150,-105]],[[-150,-105],[-75,-105]]],
+#               "4":[[[-75,-105],[0,-105]]],
+#               "5":[[[0,-105],[75,-105]]],
+#               "6":[[[150,-105],[150,-45]],[[75,-105],[150,-105]]],
+#               "7":[[[150,-45],[150,30]]],
+#               "8":[[[150,30],[150,105]],[[150,105],[0,105]]]}
 # crease_edge = {}
-# graph_edge = {'1':[[[50,50],[0,100]],[[0,100],[-50,50]]],
-#               '2':[[[-50,50],[-100,0]]],
-#               '4':[[[100,0],[50,50]]],
-#               '5':[[[-100,0],[-50,-50]]],
-#               '7':[[[100,0],[50,-50]]],
-#               '8':[[[50,-50],[0,-100]],[[0,-100],[-50,-50]]]}
-# state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1}
+# adjacent_facets = {'1':['2','4'],
+#                    '2':['1','3'],
+#                    '3':['2','4'],
+#                    '4':['1','3','5'],
+#                    '5':['4','6','8'],
+#                    '6':['5','7'],
+#                    '7':['6','8'],
+#                    '8':['5','7']}
+# # crease_angle = {'1':{'2':'-','4':'-'},
+# #                 '2':{'1':'-','3':'-'},
+# #                 '3':{'2':'-','4':'-'},
+# #                 '4':{'1':'-','3':'-','5':'+'},
+# #                 '5':{'4':'+','8':'-','6':'-'},
+# #                 '6':{'5':'-','7':'-'},
+# #                 '7':{'6':'-','8':'+'},
+# #                 '8':{'7':'+','5':'-'}}
+# # crease_angle = {'1':{'2':'-','4':'+'},
+# #                 '2':{'1':'-','3':'+'},
+# #                 '3':{'2':'+','4':'-'},
+# #                 '4':{'1':'+','3':'-','5':'+'},
+# #                 '5':{'4':'+','8':'+','6':'-'},
+# #                 '6':{'5':'-','7':'+'},
+# #                 '7':{'6':'+','8':'-'},
+# #                 '8':{'7':'-','5':'+'}}
+# crease_angle = {'1':{'2':'+','4':'+'},
+#                 '2':{'1':'+','3':'+'},
+#                 '3':{'2':'+','4':'-'},
+#                 '4':{'1':'+','3':'-','5':'+'},
+#                 '5':{'4':'+','8':'+','6':'-'},
+#                 '6':{'5':'-','7':'+'},
+#                 '7':{'6':'+','8':'+'},
+#                 '8':{'7':'+','5':'+'}}
+# ################### fig7. cup
+stack1 = [['1','2','3','4','5','6','7','8']]
+# #counterclock wise
+polygen1 = {"1":[[105,105],[0,210],[-105,105]],
+            "2":[[-70,0],[-105,105],[-210,0]],
+            "3":[[-70,0],[70,0],[105,105],[-105,105]],
+            "4":[[210,0],[105,105],[70,0]],
+            "5":[[-70,0],[-210,0],[-105,-105]],
+            "6":[[-70,0],[-105,-105],[105,-105],[70,0]],
+            "7":[[210,0],[70,0],[105,-105]],
+            "8":[[105,-105],[-105,-105],[0,-210]]
+            }
+facets1 = {"1":[[[-105,105],[105,105]]],
+           "2":[[[-210,0],[-70,0]],[[-70,0],[-105,105]]],
+           "3":[[[-70,0],[70,0]],[[70,0],[105,105]],[[105,105],[-105,105]],[[-105,105],[-70,0]]],
+           "4":[[[70,0],[210,0]],[[105,105],[70,0]]],
+           "5":[[[-105,-105],[-70,0]],[[-70,0],[-210,0]]],
+           "6":[[[-70,0],[-105,-105]],[[-105,-105],[105,-105]],[[105,-105],[70,0]],[[70,0],[-70,0]]],
+           "7":[[[210,0],[70,0]],[[70,0],[105,-105]]],
+           "8":[[[105,-105],[-105,-105]]]
+           }
+adjacent_facets = {'1':['3'],
+                   '2':['3','5'],
+                   '3':['1','2','4','6'],
+                   '4':['3','7'],
+                   '5':['2','6'],
+                   '6':['3','5','7','8'],
+                   '7':['4','6'],
+                   '8':['6']}
+crease_edge = {}
+graph_edge = {'1':[[[105,105],[0,210]],[[0,210],[-105,105]]],
+              '2':[[[-105,105],[-210,0]]],
+              '4':[[[210,0],[105,105]]],
+              '5':[[[-210,0],[-105,-105]]],
+              '7':[[[105,-105],[210,0]]],
+              '8':[[[-105,-105],[0,-210]],[[0,-210],[105,-105]]]}
+crease_angle = {'1':{'3':'+'},
+                '2':{'3':'+','5':'-'},
+                '3':{'1':'+','2':'+','4':'+','6':'-'},
+                '4':{'3':'+','7':'-'},
+                '5':{'2':'-','6':'-'},
+                '6':{'5':'-','7':'-','3':'-','8':'+'},
+                '7':{'6':'-','4':'-'},
+                '8':{'6':'+'}}
+count = {'1':0,
+         '2':0,
+         '3':0,
+         '4':0,
+         '5':0,
+         '6':0,
+         '7':0,
+         '8':0}
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
           "adjacent_facets":adjacent_facets,"fold":"valley","reflect":0,"crease_angle":crease_angle,
-          "count":0,"overlap":0,"method":"flexflip"}
+          "count":count,"overlap":0,"method":"flexflip"}
 
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
@@ -246,7 +275,7 @@ def bfs(state_graph, src, tgt_stack):
         # print "node",node
         state_node = state_dict[node]
         # generate children states for this node
-        children_states = osg.generateNextLayerStates(state_node,state1["adjacent_facets"],state1["crease_angle"])
+        children_states = osg.generateNextLayerStates(state_node)
         # print "children states",children_states
         if len(children_states) != 0:
             for i in range(len(children_states)):
@@ -299,8 +328,7 @@ def bfs(state_graph, src, tgt_stack):
 ###### print "state175",state_dict['state175']["stack"]
 # print "path",path
 
-
-def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],['1'],['8'],['5'],['6'],['7']]):
+def findPath(state_graph=state_graph,src="state1",goal_stack=[['8'],['6'],['3'],['4'],['7'],['2'],['5'],['1']]):
     start_time = time.time()
     path = bfs(state_graph,src,goal_stack)
     total_time = time.time() - start_time
@@ -314,12 +342,15 @@ def findPath(state_graph=state_graph,src="state1",goal_stack=[['2'],['3'],['4'],
     return path,stack_step,state_dict
 
 path,stack_step,state_dict = findPath()
-print "path",path
+# print "bfs path",path
+# print 'stack',stack_step
 # img = osg.VisualState(state_dict['state8'],adjacent_facets,state_dict["state7"]["count"])
 # vl.drawOneFig(img)
-# vl.visualParentChildren(state_graph,"state19",state_dict,adjacent_facets)
+# print 'count',state_dict['state13']['count']
+# vl.visualParentChildren(state_graph_culled,"state2",state_dict,adjacent_facets)
+# vl.visualParentChildren(state_graph_culled,"state4",state_dict,adjacent_facets)
 # print "stack step",stack_step
-# print "graph",state_graph
+# print "graph",state_graph['state2'],state_graph_culled['state2']
 # print "state_graph_culled",state_graph_culled
 # imgs=vl.visualTree(state_graph,path,state_dict)
 # vl.drawGraph(state_dict,state_graph_culled,path)
@@ -382,6 +413,7 @@ def dijkstra(graph, start, end):
     # be done by backtracking through the predecessors
     path = [end]
     while start not in path:
+
         path.append(predecessors[path[-1]])
 
     # return the path in order start -> end, and it's cost
@@ -390,8 +422,8 @@ def dijkstra(graph, start, end):
 def findDijkstraFromTree(state_dict,graph,init_end):
     #find the optimal path from a tree
     #init_end is the first goal state found by bfs
-    dijkstra_dis = 100000.0
-    for end in state_dict.keys():
+    dijkstra_dis = 10000
+    for end in graph.keys():
         if state_dict[end]['stack'] == state_dict[init_end]['stack']:
             path, dis = dijkstra(graph,'state1',end)
             if dis < dijkstra_dis:
@@ -399,40 +431,50 @@ def findDijkstraFromTree(state_dict,graph,init_end):
                 dijkstra_dis = dis
     return dijkstra_path,dijkstra_dis
 
-def findAllPathsFromTree(state_dict,graph,init_end):
+def findAllPathsFromTree(state_dict,graph,init_end,pattern='cup'):
     paths = []
+    diss = []
     tmp = 0
     for end in state_dict.keys():
-        if state_dict[end]['stack'] == state_dict[init_end]['stack']:
-            path,_ = dijkstra(graph,'state1',end)
+        if len(state_dict[end]['stack']) == len(state_dict[init_end]['stack']):
+            path,dis = dijkstra(graph,'state1',end)
             for i in range(len(path)-1):
-                node1 = path[i]
+                # node1 = path[i]
                 node2 = path[i+1]
-                if hp.determineWeight(state_dict[node1],state_dict[node2]) > 18:
+                # print 'weight',hp.determineWeight(state_dict[node1],state_dict[node2])
+                if hp.determineWeight(state_dict[node2]) >= 1000000000:
                     tmp = 1
                     break
             if tmp == 1:
                 tmp = 0
                 continue
             paths.append(path)
-    return paths
+            diss.append(dis)
+    return paths,diss
+
 graph = hp.WeightedGraph(state_dict,state_graph_culled)
 # print 'weighted graph',graph
-#####################################cut1: cut larger bottom facet configurations##########################################
-# imgs=vl.visualTree(state_graph_culled,path,state_dict)
+# vl.visualSteps(state_dict,path)
+#####################################cut1: cut larger bottom facet configurations and scoop reflection##########################################
+imgs=vl.visualTree(state_graph_culled,path,state_dict)
 # vl.drawGraph(state_dict,state_graph_culled,path)
 ####################################cut2: cut paths that cannot reach the goal###############################
-paths = findAllPathsFromTree(state_dict,graph,path[-1])
+paths,dis = findAllPathsFromTree(state_dict,graph,path[-1])
+# print 'path',paths, dis
 # cuted_state_graph = hp.CutedGraph(state_dict,state_graph_culled,paths)
-# imgs=vl.visualTree(cuted_state_graph,path,state_dict)
+# imgs=vl.visualTree(cuted_state_graph,path,state_dict,pattern='cup')
 # vl.drawGraph(state_dict,cuted_state_graph,path)
 ###################################cut 3: cut symmetric paths########################################
 unique_paths = hp.cutedPaths(paths,state_dict)
 cuted_state_graph = hp.CutedGraph(state_dict,state_graph_culled,unique_paths)
-print 'unique paths',unique_paths
-imgs=vl.visualTree(cuted_state_graph,path,state_dict)
-vl.drawGraph(state_dict,cuted_state_graph,path)
+# print 'unique paths',unique_paths
+# imgs=vl.visualTree(cuted_state_graph,path,state_dict)
+# vl.drawGraph(state_dict,cuted_state_graph,path)
 #######################dijkstra path
-# dijkstra_path, dijkstra_dis = findDijkstraFromTree(state_dict,graph,path[-1])
+graph1 = hp.WeightedGraph(state_dict,cuted_state_graph)
+# print 'unique_paths[0][-1]',unique_paths[0][-1]
+dijkstra_path, dijkstra_dis = findDijkstraFromTree(state_dict,graph1,path[-1])
 # print 'dijkstra_path',dijkstra_path
 # print 'dijkstra_dis',dijkstra_dis
+# imgs=vl.visualTree(cuted_state_graph,path,state_dict)
+# vl.visualSteps(state_dict,dijkstra_path)
