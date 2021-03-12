@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from compiler.ast import flatten
 import helper as hp
 import origami_reflection as osg
+import unfold_visulization as uvl
 
 ################## fig.7 plane
 stack1 = [['2'], ['3'], ['4'], ['1'], ['8'], ['5'], ['6'], ['7']]
@@ -61,7 +62,7 @@ count = {'1': 1,
          '8': 2}
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
-          "adjacent_facets":adjacent_facets,"count":count}
+          "adjacent_facets":adjacent_facets,"count":count,'reflect':0}
 
 def get_common_crease(facet1,facet2,state):
     #input 2 adjacent facets, return the common crease between them
@@ -149,7 +150,7 @@ def get_feasible_unfold_crease(facets,state):
             unfold_crease = combine_linear_lines(unfold_creases)
             if len(unfold_crease) == 0:
                 return None, None
-            print 'unfold crease func',unfold_crease
+            # print 'unfold crease func',unfold_crease
             return unfold_crease, remove_facets
     # 2.3
     elif len(facets) > 1:
@@ -237,6 +238,7 @@ def get_unfold_flap(state,root_facet='4'):
         # print 'initial flap',flap
         unfold_crease, remove_facets = get_feasible_unfold_crease(flap,state)
         # print 'unfold_crease',unfold_crease
+        # print 'remove_facets',remove_facets
 
         if unfold_crease is not None:
             # print 'flap in situation',flap
@@ -246,7 +248,7 @@ def get_unfold_flap(state,root_facet='4'):
                 for i in range(len(flap1)):
                     for j in range(len(flap1[i])):
                         facet = flap1[i][j]
-                        print 'facet',facet
+                        # print 'facet',facet
                         if facet in remove_facets:
                             flap[i].remove(facet)
                 return [flap], reverse2sign(reverse), unfold_crease
@@ -260,7 +262,7 @@ def get_unfold_flap(state,root_facet='4'):
                 flap = flap[::-1]
                 # print 'false reverse flap',flap
                 if root_facet in flatten(flap):
-                    situation1(state)
+                    return situation1(state)
                     break
 
                 unfold_crease, remove_facets = get_feasible_unfold_crease(flap,state)
@@ -270,7 +272,7 @@ def get_unfold_flap(state,root_facet='4'):
                         flap1 = copy.deepcopy(flap)
                         for i in range(len(flap1)):
                             for j in range(len(flap1[i])):
-                                facet = flap[i][j]
+                                facet = flap1[i][j]
                                 if facet in remove_facets:
                                     flap[i].remove(facet)
                         return [flap], reverse2sign(reverse), unfold_crease
@@ -281,26 +283,33 @@ def get_unfold_flap(state,root_facet='4'):
         elif reverse is True:
             for i in range(1,len(stack)):
                 flap = flap + [stack[i]]
+                # print 'true reverse flap',flap
                 if root_facet in flatten(flap):
                     print 'this origami cannot be unfolded!'
-                    return None
+                    return None, None, None
                 unfold_crease, remove_facets = get_feasible_unfold_crease(flap,state)
+                # print 'true reverse unfold_crease',unfold_crease
+                # print 'true reverse remove facets',remove_facets
                 if unfold_crease is not None:
                     if len(unfold_crease) == 1:
                         flap1 = copy.deepcopy(flap)
                         for i in range(len(flap1)):
                             for j in range(len(flap1[i])):
-                                facet = flap[i][j]
+                                facet = flap1[i][j]
                                 if facet in remove_facets:
                                     flap[i].remove(facet)
+                        # print 'true flap',flap
+                        # print 'sign',reverse2sign(reverse)
+                        # print 'unfold crease',unfold_crease
                         return [flap], reverse2sign(reverse), unfold_crease
+
                     elif len(unfold_crease) > 1:
                         situation2(state,reverse,flap)
                         break
 
     def situation1(state,reverse=True):
         # if contain root facet, reverse unfold direction
-        situation0(state,reverse)
+        return situation0(state,reverse)
 
     def situation2(state,reverse,flap):
         # if contain non-conlinear creases, determine the combination of facets
@@ -341,13 +350,13 @@ def get_unfold_flap(state,root_facet='4'):
             unfold_crease, remove_facets = get_feasible_unfold_crease(new_flap[i],state)
             # print 'unfold crease in unfold flap func',unfold_crease
             if unfold_crease is None or len(unfold_crease) != 1:
-                print 'situation2 error!'
+                # print 'situation2 error!'
                 return None
             unfold_creases.append(unfold_crease)
             flap1 = copy.deepcopy(flap)
             for i in range(len(flap1)):
                 for j in range(len(flap1[i])):
-                    facet = flap[i][j]
+                    facet = flap1[i][j]
                     if facet in remove_facets:
                         flap[i].remove(facet)
         return new_flap, reverse2sign(reverse), unfold_creases
@@ -358,8 +367,7 @@ def get_base_and_flap(flap,state):
     stack = copy.deepcopy(state['stack'])
     # print 'flap in fnccccccc',flap
     # print 'stack in fnccccccc',stack
-    # if len(flap) == 1:
-    #     flap = flap[0]
+
     base = []
     for i in range(len(stack)):
         facets = stack[i]
@@ -368,7 +376,7 @@ def get_base_and_flap(flap,state):
             # print 'base facets',facets
             base.append(facets)
         elif len(npi.intersection(facets,flatten(flap))) == len(facets):
-            break
+            continue
         else:
             facets = npi.difference(facets,flatten(flap))
             # print 'else facets',facets
@@ -390,11 +398,13 @@ def reverseStack(base,flap,crease,polygen,stack,sign):
         new_stack = base
         #reverse the flap
         new_flap = flap[::-1]
+        # print '+ new flap in reverse stack func',new_flap
         #determine layer of bottom flap facet
-        index = osg.findLayerofFacet(new_flap[0][0],stack)
-        index = index + 1 #new flap should be inserted to this index layer
+        # index = osg.findLayerofFacet(new_flap[0][0],stack)
+        # index = index + 1 #new flap should be inserted to this index layer
+        # print 'layer',index
         layer_tmp = 0
-        for i in range(index,index+len(new_flap)):
+        for i in range(0,len(new_flap)):
             # print 'index',i
             # print 'layer_tmp',layer_tmp
             new_stack[i] = new_stack[i] + new_flap[layer_tmp]
@@ -572,15 +582,15 @@ def get_next_layer_states(state):
     polygen = state["polygen"]
     adj_facets = state["adjacent_facets"]
 
+    # print '***********************************************'
     #find foldable flap, the fold direction and unfold crease
     intial_flap, sign, unfold_crease = get_unfold_flap(state)
-    print 'initial flap',intial_flap
-    print 'sign', sign
-    print 'unfold crease',unfold_crease
+    # print 'initial flap',intial_flap
+    # print 'sign', sign
+    # print 'unfold crease',unfold_crease
     for i in range(len(unfold_crease)):
-        print '***********************************************'
         state_tmp = {}
-
+        # print '*******************************************************'
         flap = intial_flap[i]
         crease = unfold_crease[i]
 
@@ -590,7 +600,7 @@ def get_next_layer_states(state):
         # print 'flap',flap
         #reverse stack
         new_stack = reverseStack(base,flap,crease,polygen,stack,sign)
-        print 'new_stack',new_stack
+        # print 'new_stack',new_stack
         #reverse polygen
         new_polygen = osg.reversePolygen(flap,crease,polygen)
         # print 'new polygen',new_polygen
@@ -615,6 +625,7 @@ def get_next_layer_states(state):
         state_tmp["graph_edge"] = new_graph_edge
         state_tmp["crease_edge"] = new_crease_edge
         state_tmp["adjacent_facets"] = adj_facets
+        state_tmp["reflect"] = 0
         state_tmp0 = copy.deepcopy(state_tmp)
         new_states.append(state_tmp0)
 

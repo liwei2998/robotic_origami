@@ -231,7 +231,7 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,count,min_crease,feasibl
     # cv2.destroyAllWindows()
     return canvas
 
-def VisualState(state,adj_facets,count=0,w=500,h=500):
+def VisualState(state,adj_facets,count=0,w=340,h=280):
     '''
     input a state, visuliaze this state
     '''
@@ -402,7 +402,7 @@ def drawTree(imgs,column,row,img_num):
     gs6 = gridspec.GridSpecFromSubplotSpec(1,row[5],subplot_spec=gs0[5])
     ax1 = plt.subplot(gs1[0,1])
     ax1.imshow(imgs[0][0])
-    # plt.title("state1",fontsize=8)
+    plt.title("node1",fontsize=8)
     plt.xticks([])
     plt.yticks([])
     num = 1
@@ -426,8 +426,8 @@ def drawTree(imgs,column,row,img_num):
             ax.imshow(imgs[num][0])
             title = imgs[num][1]
             num = num + 1
-            # title = "node" + str(num)
-            # plt.title(title,fontsize=8)
+            title = "node" + str(num)
+            plt.title(title,fontsize=8)
             plt.xticks([])
             plt.yticks([])
 
@@ -457,10 +457,7 @@ def visualTree(state_graph,path,state_dict,pattern='cup'):
             src_tmp = state_graph[j]
             src_tmpp = []
             for state in src_tmp:
-                if hp.determineWeight(state_dict[state]) > 100000000000000000:
-                    continue
-                elif hp.determineWeight(state_dict[state]) <= 100000000000000000:
-                    src_tmpp.append(state)
+                src_tmpp.append(state)
             src_list_tmp.append(src_tmpp)
             row_tmp = row_tmp + len(src_tmpp)
         src = [x for j in src_list_tmp for x in j]
@@ -497,11 +494,8 @@ def drawGraph(state_dict,state_graph_culled,path,pattern='cup',weight=0,pos=0):
                 if len(state_graph_culled[src[i]]) == 0:
                     continue
                 for kid in state_graph_culled[src[i]]:
-                    weight = hp.determineWeight(state_dict[kid])
-                    if weight > 100000000:
-                        continue
-                    elif weight <= 100000000:
-                        children.append(kid)
+
+                    children.append(kid)
             children = set(children)
             children = list(children)
             children = sorted(children, key=lambda x: int(x[5:]))

@@ -12,7 +12,7 @@ import math
 import matplotlib.pyplot as plt
 import time
 import helper as hp
-
+import unfold_visulization as uvl
 ################## fig.7 plane
 stack1 = [['2'], ['3'], ['4'], ['1'], ['8'], ['5'], ['6'], ['7']]
 #counterclock wise
@@ -66,7 +66,7 @@ count = {'1': 1,
          '8': 2}
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
-          "adjacent_facets":adjacent_facets,"count":count}
+          "adjacent_facets":adjacent_facets,"count":count,'reflect':0}
 
 state_dict = {"state1":state1}
 state_graph = {"state1":[]}
@@ -84,12 +84,12 @@ def bfs(state_graph, src):
     # #dynamic generate variable's names, using locals()
     # names = locals()
     mm = 1
-    while mm<8:
+    while queue:
         mm=mm+1
         node = queue.popleft()
-        print "node",node
+        # print "node",node
         state_node = state_dict[node]
-        print 'parent stack',state_node['stack']
+        # print 'parent stack',state_node['stack']
         # generate children states for this node
         children_states = ou.get_next_layer_states(state_node)
         # print "children states",children_states
@@ -101,9 +101,10 @@ def bfs(state_graph, src):
                 #add children states to state_graph
                 state_graph.setdefault(node,[]).append("state"+str(k))
                 k += 1
-                print 'children stack',children_states[i]['stack']
-                print 'children_states',children_states
+                # print 'children stack',children_states[i]['stack']
+                # print 'children_states',children_states
         # print "state graph",state_graph
+
 
         if node in state_graph.keys():
             for neighbor in state_graph[node]:
@@ -112,17 +113,21 @@ def bfs(state_graph, src):
                     queue.append(neighbor)
                     # print "stack_dict[neighbor][stack]",state_dict[neighbor]["stack"]
                     if len(state_dict[neighbor]["stack"]) == 1:
+                        state_graph.setdefault(neighbor,[])
                         break
-        else:
-            if len(state_dict[neighbor]["stack"]) == 1:
-                break
+
+        if len(state_dict[neighbor]["stack"]) == 1:
+            break
 
 
-    path = [node]
-    while parents[node] is not None:
-        path.insert(0, parents[node])
-        node = parents[node]
-
+    # path = [node]
+    # while parents[node] is not None:
+    #     path.insert(0, parents[node])
+    #     node = parents[node]
+    path = [neighbor]
+    while parents[neighbor] is not None:
+        path.insert(0, parents[neighbor])
+        neighbor = parents[neighbor]
     return path
 
 def findPath(state_graph=state_graph,src="state1"):
@@ -140,4 +145,6 @@ def findPath(state_graph=state_graph,src="state1"):
 
 path,stack_step,state_dict = findPath()
 # print 'state',state_dict[path[-1]]
-print "bfs path",path
+print 'nodes',len(state_graph)
+print "path",path
+imgs=uvl.visualTree(state_graph,path,state_dict)
