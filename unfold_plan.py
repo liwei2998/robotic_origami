@@ -147,4 +147,7 @@ path,stack_step,state_dict = findPath()
 # print 'state',state_dict[path[-1]]
 print 'nodes',len(state_graph)
 print "path",path
-imgs=uvl.visualTree(state_graph,path,state_dict)
+# img = uvl.VisualState(state_dict['state1'],state_dict['state1']['adjacent_facets'],state_dict['state1']['count'])
+# uvl.drawOneFig(img)
+# imgs=uvl.visualTree(state_graph,path,state_dict)
+uvl.drawPolygon1(state_dict['state2'])

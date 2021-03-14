@@ -6,10 +6,15 @@ import matplotlib.pyplot as plt
 import copy
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import ConnectionPatch
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.collections import PolyCollection
 from compiler.ast import flatten
 import networkx as nx
 import helper as hp
 import origami_reflection as osg
+from shapely.ops import cascaded_union
+import geopandas as gpd
+from shapely.geometry import *
 # stack1 = [['1','2','3','4','5','6','7','8']]
 # #counterclock wise
 # polygen1 = {"1":[[50,50],[0,100],[-50,50]],
@@ -39,6 +44,11 @@ def init_canvas(width, height,reflec=0, color1=(230,245,253), color2=(255,240,24
         canvas[:] = color1
     elif reflec == 1:
         canvas[:] = color2
+    return canvas
+
+def init_canvas1(width, height,reflec=0, color1=(230,245,253), color2=(255,240,245)):
+    canvas = np.ones((height, width, 3), dtype="uint8")
+    canvas[:] = (255,255,255)
     return canvas
 
 def rotationFromImg(weight,height,hat=0):
@@ -251,6 +261,7 @@ def VisualState(state,adj_facets,count=0,w=340,h=280):
 
     #prepare canvas
     ref = state["reflect"]
+    # canvas = init_canvas1(w,h,reflec=ref)
     canvas = init_canvas(w,h,reflec=ref)
     rot_mat = rotationFromImg(w,h,0)
     fe = []
@@ -278,6 +289,49 @@ def VisualState(state,adj_facets,count=0,w=340,h=280):
 
     return img
 
+rot_mat = rotationFromImg(300,300,0)
+
+def drawPolygon1(state,rot_mat=rot_mat):
+    polygon = state['polygen']
+    stack1 = state['stack']
+
+    rot_poly = PolygoninImag(rot_mat,polygon)
+
+    color1 = (61,139,110)
+    color2 = (193,255,193)
+    # color3 = (90,205,162)
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    layer_poly = []
+    # layer_poly = [polygon[stack1[-6][0]]]
+    # print 'poly',polygon[stack1[-6][0]]
+    for i in range(len(stack1)):
+        for j in range(len(stack1[i])):
+            facet = stack1[i][j]
+            # line = LineString(polygon[facet])
+            # poly = Polygon(line)
+            layer_poly.append(polygon[facet])
+
+    ys = np.arange(1,len(flatten(stack1))*40+1,40)
+    # ys = [0]
+
+    # poly = PolyCollection(layer_poly, facecolors=('#C1FFC1'))
+    # poly.set_alpha(0.7)
+    poly = PolyCollection(layer_poly, facecolors=[('#C1FFC1'),('#3CB371'),('#C1FFC1'),('#3CB371'),('#C1FFC1'),('#3CB371'),('#C1FFC1'),('#3CB371')])
+    ax.add_collection3d(poly, zs=ys, zdir='y')
+    ax.set_xlabel('Month')
+    ax.set_xlim3d(-150, 165)
+    ax.set_ylabel('Year')
+    ax.set_ylim3d(0, len(flatten(stack1))*40+4)
+    # ax.set_ylim3d(-1,1)
+    ax.set_zlabel('Precipitation')
+    ax.set_zlim3d(-150,165)
+    ax.grid(False)
+    ax.view_init(0,90)
+    plt.show()
+
+
 def drawOneFig(img):
     title = "node"
     plt.imshow(img)
@@ -285,6 +339,7 @@ def drawOneFig(img):
     plt.xticks([])
     plt.yticks([])
     plt.show()
+
 # drawPolygon(polygen1,stack1,rot_mat)
 # img = drawPolygon(polygen1,stack1,canvas,rot_mat)
 
@@ -430,6 +485,7 @@ def drawTree(imgs,column,row,img_num):
             plt.title(title,fontsize=8)
             plt.xticks([])
             plt.yticks([])
+
 
         # title = "node" + str(i)
         # plt.title(title,fontsize=12)
