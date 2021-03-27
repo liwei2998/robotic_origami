@@ -156,6 +156,24 @@ def get_common_crease(facet1,facet2,state):
                 common_creases.append(crease1)
     return common_creases
 
+def get_connect_crease(facet1,facet2,common_creases,state):
+    #if the two facets has more than 1 common creases,
+    #determine their true connected crease
+    crease_edge = copy.deepcopy(state['crease_edge'])
+    adjacent_facets = copy.deepcopy(state['adjacent_facets'])
+    adj_facets1 = adjacent_facets[facet1]
+    adj_facets2 = adjacent_facets[facet2]
+    #1.in their common_creases, the unique crease must be the connect_crease
+    for common_crease in common_creases:
+        count = 0
+        for facet in crease_edge.keys():
+            all_crease = crease_edge[facet]
+            if common_crease in all_crease:
+                if facet in adj_facets1 or facet in adj_facets2:
+                    count = count + 1
+        if count == 2:
+            return common_crease
+
 def combine_linear_lines(lines):
     #input lines, combine the linear ones and remain the non-linear one
     #find the linear ones
@@ -256,49 +274,47 @@ def get_feasible_unfold_crease(facets,state):
             return unfold_crease, remove_facets
     # 2.3
     elif len(facets) > 1:
-        for i in range(len(facets)):
-            for j in range(len(facets[i])):
-                facet = facets[i][j]
-                # print 'facet',facet
-                # get its adj facets
-                adj_facets = adjacent_facets[facet]
-                adj_facets = npi.intersection(adj_facets,flatten(facets))
-                # print 'adj facets2',adj_facets
-                #delete infeasible creases
-                if len(adj_facets) == 0:
-                    if len(crease_edge[facet]) > 1:
-                        remove_facets.append(facet)
-                        for k in range(len(crease_edge[facet])):
-                            if crease_edge[facet][k] in unfold_creases:
-                                unfold_creases.remove(crease_edge[facet][k])
-                            elif [crease_edge[facet][k][1],crease_edge[facet][k][0]] in unfold_creases:
-                                unfold_creases.remove([crease_edge[facet][k][1],crease_edge[facet][k][0]])
-                elif len(adj_facets) > 0:
-                    for adj_facet in adj_facets:
-                        layers = osg.findLayersofFacets([facet,adj_facet],state['stack'])
-                        if len(layers) > 1:
-                            common_creases = get_common_crease(facet,adj_facet,state)
-                            for common_crease in common_creases:
-                                # print 'common crease',common_crease
-                                same_edge_facets = osg.findFacetwithSameEdge(crease_edge,stack,common_crease,facet)
-                                f_tempp = npi.intersection(flatten(same_edge_facets),flatten(facets))
-                                f_tempp = f_tempp.tolist()
-                                f_tempp.remove(adj_facet)
-                                s_tempp = copy.deepcopy(flatten(stack))
-                                for tmp in flatten(facets):
-                                    s_tempp.remove(tmp)
-                                tempp = npi.intersection(same_edge_facets,s_tempp)
-                                # print 'same facet',same_edge_facets
-                                # print 'f temp',f_tempp
-                                # print 's temp',s_tempp
-                                # print 'tempp',tempp
-                                if len(f_tempp) == 0:
-                                    if len(tempp) != 0:
-                                        continue
-                                if common_crease in unfold_creases:
-                                    unfold_creases.remove(common_crease)
-                                elif [common_crease[1],common_crease[0]] in unfold_creases:
-                                    unfold_creases.remove([common_crease[1],common_crease[0]])
+        for facet in flatten(facets):
+            print 'facet',facet
+            # get its adj facets
+            adj_facets = adjacent_facets[facet]
+            adj_facets = npi.intersection(adj_facets,flatten(facets))
+            print 'adj facets2',adj_facets
+
+            #delete infeasible facets and its crease
+            #infeasible facets are the facets without any adj facets in the flap, and has >1 creases
+            if len(adj_facets) == 0:
+                if len(crease_edge[facet]) > 1:
+                    #delete facets
+                    remove_facets.append(facet)
+                    for k in range(len(crease_edge[facet])):
+                        #delete according creases
+                        if crease_edge[facet][k] in unfold_creases:
+                            unfold_creases.remove(crease_edge[facet][k])
+                        elif [crease_edge[facet][k][1],crease_edge[facet][k][0]] in unfold_creases:
+                            unfold_creases.remove([crease_edge[facet][k][1],crease_edge[facet][k][0]])
+            #delete connected crease between two adj_facets
+            #when the two facets are adjacent, their common crease should be deleted
+            elif len(adj_facets) > 0:
+                for adj_facet in adj_facets:
+                    print 'adj facet',adj_facet
+                    common_creases = get_common_crease(facet,adj_facet,state)
+
+                    if len(common_creases) == 0:
+                        continue
+                    elif len(common_creases) == 1:
+                        connect_crease = common_creases[0]
+                        print 'len common=1 connected_crease',connect_crease
+                    #if they have >1 common creases, then identify which crease connect them
+                    elif len(common_creases)>1:
+                        connect_crease=get_connect_crease(facet,adj_facet,common_creases,state)
+                        print 'len common>1 connected_crease',connect_crease
+
+                    #delete the connected crease
+                    if connect_crease in unfold_creases:
+                        unfold_creases.remove(connect_crease)
+                    elif [connect_crease[1],connect_crease[0]] in unfold_creases:
+                        unfold_creases.remove([connect_crease[1],connect_crease[0]])
         # print 'unfold crease',unfold_creases
         unfold_crease = combine_linear_lines_new(unfold_creases,facets,crease_edge)
         if len(unfold_crease) == 0:
@@ -325,7 +341,8 @@ def sort_facets_by_layer(state,facets):
         stack_temp = []
         facet1 = sort_temp[i][0]
         layer1 = sort_temp[i][1]
-        stack_temp.append(facet1)
+        if facet1 not in flatten(new_stack):
+            stack_temp.append(facet1)
         for j in range(i,len(sort_temp)):
             if j == i:
                 continue
@@ -335,7 +352,8 @@ def sort_facets_by_layer(state,facets):
                 stack_temp.append(facet2)
             else:
                 break
-        new_stack.append(stack_temp)
+        if len(stack_temp)!=0:
+            new_stack.append(stack_temp)
     # print 'new stack',new_stack
     return new_stack
 
@@ -374,7 +392,7 @@ def get_unfold_flap(state,root_facet='4'):
                 for i in range(len(flap1)):
                     for j in range(len(flap1[i])):
                         facet = flap1[i][j]
-                        print 'facet',facet
+                        # print 'facet',facet
                         if facet in remove_facets:
                             flap[i].remove(facet)
                 return [flap], reverse2sign(reverse), unfold_crease
@@ -442,6 +460,7 @@ def get_unfold_flap(state,root_facet='4'):
         # divide the facets according to its adj facets
         new_flap = []
         adjacent_facets = state['adjacent_facets']
+
         for i in range(len(flap)):
             for j in range(len(flap[i])):
                 new_flap_temp = []
@@ -454,16 +473,22 @@ def get_unfold_flap(state,root_facet='4'):
                     for layer in range(len(new_flap)):
                         if facet in new_flap[layer]:
                             break
-                print 'facet',facet
-                print 'layer',layer
-                print 'new flap temp',new_flap_temp
+                # print 'facet',facet
+                # print 'layer',layer
+                # print 'new flap temp',new_flap_temp
                 adj_facets = adjacent_facets[facet]
                 adj_facets = npi.intersection(adj_facets,flatten(flap))
-                
+                # print 'adj facet',adj_facets
+                if len(npi.intersection(adj_facets,flatten(new_flap))) != 0:
+                    for layer in range(len(new_flap)):
+                        if adj_facets[0] in new_flap[layer]:
+                            break
+                    # print 'laaayer',layer
+                    # print 'tempppp',new_flap_temp
                 new_flap_temp = new_flap_temp + flatten(adj_facets)
                 new_flap_temp = set(new_flap_temp)
                 new_flap_temp = list(new_flap_temp)
-                print 'new flap temp',new_flap_temp
+                # print 'new flap temp',new_flap_temp
                 if layer == 999:
                     new_flap.append(new_flap_temp)
                 else:
@@ -476,9 +501,9 @@ def get_unfold_flap(state,root_facet='4'):
         print 'new flap in unfold flap func',new_flap
         unfold_creases = []
         for i in range(len(new_flap)):
-            print 'new i',new_flap[i]
+            # print 'new i',new_flap[i]
             unfold_crease, remove_facets = get_feasible_unfold_crease(new_flap[i],state)
-            print 'unfold crease in unfold flap func',unfold_crease
+            # print 'unfold crease in unfold flap func',unfold_crease
             if unfold_crease is None or len(unfold_crease) != 1:
                 print 'situation2 error!'
                 return None
@@ -489,7 +514,7 @@ def get_unfold_flap(state,root_facet='4'):
                     facet = flap1[i][j]
                     if facet in remove_facets:
                         new_flap[i].remove(facet)
-        print 'neww flap',new_flap
+        # print 'neww flap',new_flap
 
         return new_flap, reverse2sign(reverse), unfold_creases
 
@@ -600,16 +625,17 @@ def reverseStack(base,flap,crease,sign,state):
         #reverse the flap
         new_flap = flap[::-1]
         #determine layers of each facet in the flap
-        print 'neww stack',new_stack
+        # print 'neww stack',new_stack
+        # print 'neww flap',new_flap
         for i in range(len(new_flap)):
             for j in range(len(new_flap[i])):
                 adj_tt = 999
                 facet = new_flap[i][j]
-                print 'facet',facet
+                # print 'facet',facet
                 same_edge_facets = osg.findFacetwithSameEdge(crease_edge,stack,crease,facet)
-                print 'same_edge_facets',same_edge_facets
+                # print 'same_edge_facets',same_edge_facets
                 adj_facet = npi.intersection(adjacent_facets[facet],same_edge_facets)
-                print 'adj facet',adj_facet
+                # print 'adj facet',adj_facet
                 if len(adj_facet) == 1:
                     if adj_facet in flatten(new_flap):
                         continue
@@ -621,9 +647,9 @@ def reverseStack(base,flap,crease,sign,state):
                         adj_tt = adj_tmp
                 if adj_tt == 999:
                     continue
-                print 'adj_tt',adj_tt
+                # print 'adj_tt',adj_tt
                 layer = osg.findLayerofFacet(adj_tt,stack)
-                print 'layer',layer
+                # print 'layer',layer
                 new_stack[layer] = new_stack[layer] + new_flap[i]
                 break
 
@@ -796,6 +822,8 @@ def get_next_layer_states(state):
         base,flap = get_base_and_flap(flap,state)
         print 'base',base
         print 'flap',flap
+        if flap == [['13', '14'], ['9', '10']]:
+            print '###############################################################'
         #reverse stack
         new_stack = reverseStack(base,flap,crease,sign,state)
         print 'new_stack',new_stack
