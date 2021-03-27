@@ -59,9 +59,13 @@ def rotationFromImg(weight,height,hat=0):
         rot_mat = [[1,0,weight/2],
                    [0,-1,height/2],
                    [0,0,1]]
-    else:
+    elif hat == 1:
         rot_mat = [[0,1,weight/2],
                    [1,0,height/2],
+                   [0,0,1]]
+    elif hat == 2:
+        rot_mat = [[-1,0,weight/2],
+                   [0,1,height/2],
                    [0,0,1]]
     return rot_mat
 
@@ -243,12 +247,15 @@ def drawPolygonwithCrease(polygon,stack1,canvas,rot_mat,count,min_crease,feasibl
     # cv2.destroyAllWindows()
     return canvas
 
-def VisualState(state,adj_facets,count=0,w=340,h=280):
+def VisualState(state,adj_facets,count,pattern,w=340,h=280):
     '''
     input a state, visuliaze this state
     '''
-    #find minimal set of lines taht contain all creases
-    creases = osg.findAllCreases(state["stack"],state["facet_crease"])
+    if pattern == 'samurai':
+        creases = osg.findAllCreases(state["stack"],state["crease_edge"])
+    else:
+        #find minimal set of lines taht contain all creases
+        creases = osg.findAllCreases(state["stack"],state["facet_crease"])
     # print "creassssss",state['facet_crease']
     # print 'creases',creases
     crease = osg.findNonRepetiveCreases(creases)
@@ -258,7 +265,7 @@ def VisualState(state,adj_facets,count=0,w=340,h=280):
     #find all feasible creases
     feasible_crease = osg.findFeasibleCrease(min_crease,state["polygen"])
     # print "feasible crease",feasible_crease
-    reflec, crease_set_min, crease_set_max = osg.ifReflectable(state)
+    reflec, crease_set_min, crease_set_max = osg.ifReflectable(state,pattern)
     # print "reflec",reflec,crease_set_min,crease_set_max
 
     #prepare canvas
@@ -408,7 +415,7 @@ def drawOneFig(img):
 def drawMultiFigs(imgs,column,row,img_num):
     for i in range(column):
         for j in range(row):
-            index = i*column + j+i
+            index = i*column + j-i
             # print "index",index
             if index >= img_num:
                 break
@@ -555,6 +562,70 @@ def drawTree(imgs,column,row,img_num):
         # plt.yticks([])
     plt.tight_layout()
 
+def drawTree_samurai(imgs,column,row,img_num):
+    # draw a search tree
+    gs0 = gridspec.GridSpec(column,1)
+    # print 'row',row
+    gs1 = gridspec.GridSpecFromSubplotSpec(1,3,subplot_spec=gs0[0])
+    gs2 = gridspec.GridSpecFromSubplotSpec(1,row[1],subplot_spec=gs0[1])
+    gs3 = gridspec.GridSpecFromSubplotSpec(1,row[2],subplot_spec=gs0[2])
+    gs4 = gridspec.GridSpecFromSubplotSpec(1,row[3],subplot_spec=gs0[3])
+    gs5 = gridspec.GridSpecFromSubplotSpec(1,row[4],subplot_spec=gs0[4])
+    gs6 = gridspec.GridSpecFromSubplotSpec(1,row[5],subplot_spec=gs0[5])
+    gs7 = gridspec.GridSpecFromSubplotSpec(1,row[6],subplot_spec=gs0[1])
+    gs8 = gridspec.GridSpecFromSubplotSpec(1,row[7],subplot_spec=gs0[2])
+    gs9 = gridspec.GridSpecFromSubplotSpec(1,row[8],subplot_spec=gs0[3])
+    gs10 = gridspec.GridSpecFromSubplotSpec(1,row[9],subplot_spec=gs0[4])
+    gs11 = gridspec.GridSpecFromSubplotSpec(1,row[10],subplot_spec=gs0[5])
+    ax1 = plt.subplot(gs1[0,1])
+    ax1.imshow(imgs[0][0])
+    plt.title("node1",fontsize=8)
+    plt.xticks([])
+    plt.yticks([])
+    num = 1
+    # gs2.update(wspace=0,hspace=0)
+    # gs3.update(wspace=0,hspace=0)
+    # gs4.update(wspace=0,hspace=0)
+    # gs5.update(wspace=0,hspace=0)
+    # gs6.update(wspace=0,hspace=0)
+    for k in range(1,len(row)):
+        for i in range(1,row[k]+1):
+            if k == 1:
+                ax = plt.subplot(gs2[0,i-1])
+            elif k == 2:
+                ax = plt.subplot(gs3[0,i-1])
+            elif k == 3:
+                ax = plt.subplot(gs4[0,i-1])
+            elif k == 4:
+                ax = plt.subplot(gs5[0,i-1])
+            elif k == 5:
+                ax = plt.subplot(gs6[0,i-1])
+
+            elif k == 6:
+                ax = plt.subplot(gs7[0,i-1])
+            elif k == 7:
+                ax = plt.subplot(gs8[0,i-1])
+            elif k == 8:
+                ax = plt.subplot(gs9[0,i-1])
+            elif k == 9:
+                ax = plt.subplot(gs10[0,i-1])
+            elif k == 10:
+                ax = plt.subplot(gs11[0,i-1])
+            ax.imshow(imgs[num][0])
+            title = imgs[num][1]
+            num = num + 1
+            title = "node" + str(num)
+            plt.title(title,fontsize=8)
+            plt.xticks([])
+            plt.yticks([])
+
+
+        # title = "node" + str(i)
+        # plt.title(title,fontsize=12)
+        # plt.xticks([])
+        # plt.yticks([])
+    plt.tight_layout()
+
 def visualTree(state_graph,path,state_dict,pattern='cup'):
     #visualize a tree
     column = len(path)
@@ -567,7 +638,7 @@ def visualTree(state_graph,path,state_dict,pattern='cup'):
         for j in src:
             # print "j",j
             # print 'count',state_dict[j]['count']
-            img = VisualState(state_dict[j],state_dict['state1']["adjacent_facets"],state_dict[j]["count"])
+            img = VisualState(state_dict[j],state_dict['state1']["adjacent_facets"],state_dict[j]["count"],pattern)
             img_tmp = copy.deepcopy(img)
             imgs.append([img_tmp,j])
             if j not in state_graph.keys():
@@ -586,7 +657,10 @@ def visualTree(state_graph,path,state_dict,pattern='cup'):
     img_num = sum(row)
     # print "imgss",len(imgs)
     # print "img num",img_num
-    drawTree(imgs,column,row,img_num+1)
+    if pattern == 'samurai':
+        drawTree_samurai(imgs,column,row,img_num+1)
+    else:
+        drawTree(imgs,column,row,img_num+1)
     plt.show()
     return imgs
 ##############visualize the search tree#####################################
@@ -671,7 +745,7 @@ def visualSteps(state_dict,path):
     #visuliaze fold sequnce
     img_num = len(path) #+ 1
     # print "img num",img_num
-    row = 3
+    row = 4
     if img_num % row == 0:
         column = int(img_num/3)
     else:
@@ -683,8 +757,8 @@ def visualSteps(state_dict,path):
     # h = 250 #cup
     # w = 300 #fig5
     # h = 300 #fig5
-    w = 600
-    h = 600
+    w = 340
+    h = 340
     imgs=[]
     # canvas = init_canvas(w,h)
     # rot_mat = rotationFromImg(w,h,0)
@@ -692,7 +766,7 @@ def visualSteps(state_dict,path):
     # imgs.append(img)
     for i in range(len(path)):
         canvas = init_canvas(w,h)
-        rot_mat = rotationFromImg(w,h,0)
+        rot_mat = rotationFromImg(w,h,2)
 
         stack = state_dict[path[i]]["stack"]
         count = state_dict[path[i]]['count']

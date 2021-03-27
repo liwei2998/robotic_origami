@@ -143,7 +143,7 @@ adjacent_facets = {'1':['2'],
                    '18':['16']}
 count = {'1':3,'2':2,'3':1,'4':0,'5':1,'6':1,'7':2,'8':3,
          '9':2,'10':3,'11':4,'12':3,'13':4,'14':3,'15':2,
-         '16':2,'17':2,'18':2}
+         '16':1,'17':2,'18':2}
 state1 = {"stack":stack1,"polygen":polygen1,"facet_crease":facets1,
           "graph_edge":graph_edge,"crease_edge":crease_edge,
           "adjacent_facets":adjacent_facets,"count":count,'reflect':0}
@@ -233,5 +233,6 @@ path,stack_step,state_dict = findPath()
 # print "path",path
 # img = uvl.VisualState(state_dict['state1'],state_dict['state1']['adjacent_facets'],state_dict['state1']['count'])
 # uvl.drawOneFig(img)
-# imgs=uvl.visualTree(state_graph,path,state_dict)
-uvl.drawPolygon1(state_dict['state6'])
+# imgs=uvl.visualTree(state_graph,path,state_dict,pattern='samurai')
+# uvl.drawPolygon1(state_dict['state6'])
+uvl.visualSteps(state_dict,path)

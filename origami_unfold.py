@@ -200,22 +200,64 @@ def combine_linear_lines(lines):
         # print 'linear index',linear_index
         # print 'linear temp',linear_temp
         new_lines= new_lines + osg.CombineLinearLines(linear_temp)
+        # print 'new 1',new_lines
     # print 'new line',new_lines
     return new_lines
 
 
-def combine_linear_lines_new(lines,facets,crease_edge1):
-    #input lines, combine the linear ones and remain the non-linear one
-    #find the linear ones
-    if len(facets) == 1:
-        return combine_linear_lines(lines)
-    else:
-        for i in range(len(facets)):
-            if len(facets[i])==1:
+def combine_linear_lines_new(lines,facets,state):
+    #combine linear lines, but sometimes the linear lines are from no adj_facets
+    #this kind of linear lines cannot be combined
+    # adjacent_facets = copy.deepcopy(state['adjacent_facets'])
+    crease_edge = copy.deepcopy(state['crease_edge'])
+    # stack = copy.deepcopy(state['stack'])
+
+    def findFacetbyEdge(crease_edge,edge,facets):
+        #return facet that has this crease and in facets
+        facets1 = []
+        # print "edge",edge
+        for i in crease_edge.keys():
+            edges = crease_edge[i]
+            for j in edges:
+                # print "crease edgeee",j
+                if osg.ifLineSame(edge,j)==1:
+                    facets1.append(i)
+                    break
+        new_facets = npi.intersection(facets1,flatten(facets))
+        new_facets = new_facets.tolist()
+        return new_facets
+
+    #if only 1 line
+    if len(lines) == 1:
+        return lines
+
+    #find linear lines
+
+    for i in range(len(lines)):
+        line1 = lines[i]
+        for j in range(i,len(lines)):
+            if j == i:
                 continue
-            else:
-                return lines
-        return combine_linear_lines(lines)
+            line2 = lines[j]
+            #if co-linear, find if they are single-layered
+            if osg.ifLineColinear(line1,line2)==1:
+                facets1 = findFacetbyEdge(crease_edge,line1,facets)
+                facets2 = findFacetbyEdge(crease_edge,line2,facets)
+                # print 'line1',line1
+                # print 'line2',line2
+                # print 'facets1',facets1
+                # print 'facets2',facets2
+                if len(facets1) > 1 or len(facets2) > 1:
+                    return lines
+
+    return combine_linear_lines(lines)
+
+    # for i in range(len(facets)):
+    #     if len(facets[i])==1:
+    #         continue
+    #     else:
+    #         return lines
+    # return combine_linear_lines(lines)
 
 
 def get_feasible_unfold_crease(facets,state):
@@ -230,6 +272,7 @@ def get_feasible_unfold_crease(facets,state):
     unfold_creases = []
     facets = copy.deepcopy(facets)
     # print 'facets',facets
+    # print 'crease edge',crease_edge
     for i in range(len(facets)):
         # print 'facets[i]',facets[i]
         for j in range(len(facets[i])):
@@ -238,8 +281,9 @@ def get_feasible_unfold_crease(facets,state):
             creases = crease_edge[facet]
             for crease in creases:
                 if crease not in unfold_creases and [crease[1],crease[0]] not in unfold_creases:
+                    # print 'creaseeeeeeeeeeee',crease
                     unfold_creases.append(crease)
-    print 'unfold_creasessss',unfold_creases
+    # print 'unfold_creasessss',unfold_creases
     # 2: determine which crease is feasible
     # 2.1
     remove_facets = []
@@ -275,11 +319,11 @@ def get_feasible_unfold_crease(facets,state):
     # 2.3
     elif len(facets) > 1:
         for facet in flatten(facets):
-            print 'facet',facet
+            # print 'facet',facet
             # get its adj facets
             adj_facets = adjacent_facets[facet]
             adj_facets = npi.intersection(adj_facets,flatten(facets))
-            print 'adj facets2',adj_facets
+            # print 'adj facets2',adj_facets
 
             #delete infeasible facets and its crease
             #infeasible facets are the facets without any adj facets in the flap, and has >1 creases
@@ -297,18 +341,19 @@ def get_feasible_unfold_crease(facets,state):
             #when the two facets are adjacent, their common crease should be deleted
             elif len(adj_facets) > 0:
                 for adj_facet in adj_facets:
-                    print 'adj facet',adj_facet
+                    # print 'adj facet',adj_facet
                     common_creases = get_common_crease(facet,adj_facet,state)
+                    # print 'common_crease',common_creases
 
                     if len(common_creases) == 0:
                         continue
                     elif len(common_creases) == 1:
                         connect_crease = common_creases[0]
-                        print 'len common=1 connected_crease',connect_crease
+                        # print 'len common=1 connected_crease',connect_crease
                     #if they have >1 common creases, then identify which crease connect them
                     elif len(common_creases)>1:
                         connect_crease=get_connect_crease(facet,adj_facet,common_creases,state)
-                        print 'len common>1 connected_crease',connect_crease
+                        # print 'len common>1 connected_crease',connect_crease
 
                     #delete the connected crease
                     if connect_crease in unfold_creases:
@@ -316,9 +361,10 @@ def get_feasible_unfold_crease(facets,state):
                     elif [connect_crease[1],connect_crease[0]] in unfold_creases:
                         unfold_creases.remove([connect_crease[1],connect_crease[0]])
         # print 'unfold crease',unfold_creases
-        unfold_crease = combine_linear_lines_new(unfold_creases,facets,crease_edge)
+        unfold_crease = combine_linear_lines_new(unfold_creases,facets,state)
         if len(unfold_crease) == 0:
             return None, None
+        # print 'unfold crease',unfold_crease
         return unfold_crease, remove_facets
 
 def sort_facets_by_layer(state,facets):
@@ -348,7 +394,7 @@ def sort_facets_by_layer(state,facets):
                 continue
             facet2 = sort_temp[j][0]
             layer2 = sort_temp[j][1]
-            if layer1 == layer2:
+            if layer1 == layer2 and facet2 not in flatten(new_stack):
                 stack_temp.append(facet2)
             else:
                 break
@@ -378,15 +424,15 @@ def get_unfold_flap(state,root_facet='4'):
             flap = [stack[-1]]
         elif reverse is True:
             flap = [stack[0]]
-        print 'situatonnnnn stack',stack
-        print 'initial flap',flap
+        # print 'situatonnnnn stack',stack
+        # print 'initial flap',flap
         unfold_crease, remove_facets = get_feasible_unfold_crease(flap,state)
-        print 'unfold_crease',unfold_crease
-        print 'remove_facets',remove_facets
+        # print 'unfold_crease',unfold_crease
+        # print 'remove_facets',remove_facets
 
         if unfold_crease is not None:
-            print 'flap in situation',flap
-            print 'remove facet',remove_facets
+            # print 'flap in situation',flap
+            # print 'remove facet',remove_facets
             if len(unfold_crease) == 1:
                 flap1 = copy.deepcopy(flap)
                 for i in range(len(flap1)):
@@ -404,13 +450,13 @@ def get_unfold_flap(state,root_facet='4'):
             for i in range(-2,-len(stack)-1,-1):
                 flap = flap + [stack[i]]
                 flap = flap[::-1]
-                print 'false reverse flap',flap
+                # print 'false reverse flap',flap
                 if root_facet in flatten(flap):
                     return situation1(state)
                     break
 
                 unfold_crease, remove_facets = get_feasible_unfold_crease(flap,state)
-                print 'false reverse unfold_crease',unfold_crease
+                # print 'false reverse unfold_crease',unfold_crease
                 if unfold_crease is not None:
                     if len(unfold_crease) == 1:
                         flap1 = copy.deepcopy(flap)
@@ -427,7 +473,7 @@ def get_unfold_flap(state,root_facet='4'):
         elif reverse is True:
             for i in range(1,len(stack)):
                 flap = flap + [stack[i]]
-                print 'true reverse flap',flap
+                # print 'true reverse flap',flap
                 if root_facet in flatten(flap):
                     print 'this origami cannot be unfolded!'
                     return None, None, None
@@ -459,7 +505,7 @@ def get_unfold_flap(state,root_facet='4'):
         # if contain non-conlinear creases, determine the combination of facets
         # divide the facets according to its adj facets
         new_flap = []
-        adjacent_facets = state['adjacent_facets']
+        adjacent_facets = copy.deepcopy(state['adjacent_facets'])
 
         for i in range(len(flap)):
             for j in range(len(flap[i])):
@@ -480,9 +526,15 @@ def get_unfold_flap(state,root_facet='4'):
                 adj_facets = npi.intersection(adj_facets,flatten(flap))
                 # print 'adj facet',adj_facets
                 if len(npi.intersection(adj_facets,flatten(new_flap))) != 0:
+                    break_sign = 0
                     for layer in range(len(new_flap)):
-                        if adj_facets[0] in new_flap[layer]:
+                        for adj in adj_facets:
+                            if adj in new_flap[layer]:
+                                break_sign = 1
+                                break
+                        if break_sign == 1:
                             break
+
                     # print 'laaayer',layer
                     # print 'tempppp',new_flap_temp
                 new_flap_temp = new_flap_temp + flatten(adj_facets)
@@ -495,10 +547,10 @@ def get_unfold_flap(state,root_facet='4'):
                     new_flap[layer] = new_flap[layer] + new_flap_temp
                     new_flap[layer] = set(new_flap[layer])
                     new_flap[layer] = list(new_flap[layer])
-        print 'new flap',new_flap
+        # print 'new flap',new_flap
         for i in range(len(new_flap)):
             new_flap[i] = sort_facets_by_layer(state,new_flap[i])
-        print 'new flap in unfold flap func',new_flap
+        # print 'new flap in unfold flap func',new_flap
         unfold_creases = []
         for i in range(len(new_flap)):
             # print 'new i',new_flap[i]
@@ -605,18 +657,52 @@ def reverseStack(base,flap,crease,sign,state):
         #base stack will be remained, add base first
         new_stack = base
         #reverse the flap
-        new_flap = flap[::-1]
-        # print '+ new flap in reverse stack func',new_flap
-        #determine layer of bottom flap facet
-        # index = osg.findLayerofFacet(new_flap[0][0],stack)
-        # index = index + 1 #new flap should be inserted to this index layer
-        # print 'layer',index
-        layer_tmp = 0
-        for i in range(0,len(new_flap)):
-            # print 'index',i
-            # print 'layer_tmp',layer_tmp
-            new_stack[i] = new_stack[i] + new_flap[layer_tmp]
-            layer_tmp = layer_tmp + 1
+        new_flap = flap
+
+        for i in range(len(new_flap)):
+            #for flap facets in each layer, find their connect layer in base
+            for j in range(len(new_flap[i])):
+                adj_tt = 999
+                facet = new_flap[i][j]
+                # print 'facet',facet
+                same_edge_facets = osg.findFacetwithSameEdge(crease_edge,stack,crease,facet)
+                #if they are just connect to the flap
+                if len(same_edge_facets)==0 and j==len(new_flap[i])-1:
+                    adj_facet = adjacent_facets[facet]
+                    for adj_tmp in adjacent_facets:
+                        if adj_tmp in flatten(new_stack):
+                            adj_tt = adj_tmp
+                            break
+                    layer = osg.findLayerofFacet(adj_tt,new_stack)
+                    layer = layer-1
+                    # print 'layer',layer
+                    if layer == -1:
+                        new_stack.insert(0,new_flap[i])
+                    else:
+                        new_stack[layer] = new_stack[layer] + new_flap[i]
+                    break
+                # print 'same_edge_facets',same_edge_facets
+                adj_facet = npi.intersection(adjacent_facets[facet],same_edge_facets)
+                # print 'adj facet',adj_facet
+                # print 'new flatten',flatten(new_stack)
+                if len(adj_facet) == 1:
+                    if adj_facet in flatten(new_stack):
+                        adj_tt = adj_facet[0]
+                elif len(adj_facet) > 1:
+                    for adj_tmp in adj_facet:
+                        if adj_tmp in flatten(new_stack):
+                            adj_tt = adj_tmp
+                            break
+                # print 'adj tt',adj_tt
+
+                if adj_tt == 999:
+                    continue
+
+                layer = osg.findLayerofFacet(adj_tt,new_stack)
+                # print 'layer',layer
+                new_stack[layer] = new_stack[layer] + new_flap[i]
+                break
+
 
     elif sign == "-":
         #flap below the base
@@ -648,7 +734,7 @@ def reverseStack(base,flap,crease,sign,state):
                 if adj_tt == 999:
                     continue
                 # print 'adj_tt',adj_tt
-                layer = osg.findLayerofFacet(adj_tt,stack)
+                layer = osg.findLayerofFacet(adj_tt,new_stack)
                 # print 'layer',layer
                 new_stack[layer] = new_stack[layer] + new_flap[i]
                 break
@@ -675,44 +761,50 @@ def reverseCrease(flap,crease,crease_set):
 
 def CreaseDisassemble(crease_set,long_crease):
     #disassemble long creases into short creases
+    def ifLineContain(long_crease,crease):
+        #determine if crease is contained in the long crease
+        if osg.ifLineColinear(long_crease,crease)==1:
+            x11=long_crease[0][0]
+            x12=long_crease[1][0]
+            x21=crease[0][0]
+            x22=crease[1][0]
+            if max(x11,x12) >= max(x21,x22) and min(x21,x22) >= min(x11,x12):
+                return True
+            return False
+        return False
+
     creases = []
     for facet in crease_set.keys():
         crease_tmp = crease_set[facet]
         for i in range(len(crease_tmp)):
             crease = crease_tmp[i]
-            if osg.ifLineColinear(long_crease,crease) == 1 and crease not in creases:
+            if ifLineContain(long_crease,crease) == 1 and crease not in creases:
                 creases.append(crease)
     return creases
 
-def get_folded_creases_and_facets(creases,crease_set,flap,sign,stack):
+def get_folded_creases_and_facets(creases,crease_set,flap,sign,state):
     #in new crease edge, graph_edge, facet_crease, folded creases need to be delete or add
     #output facets and creases that should be modified in old crease set
-
+    stack = copy.deepcopy(state['stack'])
+    adjacent_facets = copy.deepcopy(state['adjacent_facets'])
     #find facets that has the creases
     facets = {}
     for crease in creases:
         for facet in crease_set.keys():
             crease_temps = crease_set[facet]
             for crease_temp in crease_temps:
-                if osg.ifLineSame(crease,crease_temp) == 1 and facet not in facets:
+                if osg.ifLineSame(crease,crease_temp) == 1 and facet not in facets.keys():
                     facets.setdefault(facet,crease_temp)
-    # print 'facets',facets
 
     #find related facets
     crease_facet = {}
-    if sign == '-':
-        flap_facet = flap[0][0]
-        layer = osg.findLayerofFacet(flap_facet,stack)
-        layers = np.arange(len(stack)-1,layer-1-len(flap),-1)
-    elif sign == '+':
-        flap_facet = flap[-1][0]
-        layer = osg.findLayerofFacet(flap_facet,stack)
-        layers = np.arange(0,layer+1+len(flap))
-    layers = layers.tolist()
-    for facet in facets.keys():
-        index = osg.findLayerofFacet(facet,stack)
-        if index in layers:
+    for facet in flatten(flap):
+        if facet in facets.keys():
             crease_facet[facet] = facets[facet]
+        adj_facets = adjacent_facets[facet]
+        for adj_facet in adj_facets:
+            if adj_facet in facets.keys():
+                crease_facet[adj_facet] = facets[adj_facet]
 
     return crease_facet
 
@@ -726,7 +818,7 @@ def get_new_edge(flap,crease,sign,state,mode='crease_edge'):
 
     creases = CreaseDisassemble(crease_edge,crease)
     #get modified facets and corresponding creass
-    modified_facet = get_folded_creases_and_facets(creases,crease_set,flap,sign,stack)
+    modified_facet = get_folded_creases_and_facets(creases,crease_set,flap,sign,state)
     #delete the modified crease and facets
     for facet in modified_facet.keys():
         modified_crease = modified_facet[facet]
@@ -748,7 +840,7 @@ def get_new_facet_crease(flap,crease,sign,state):
     #first add folded crease
     creases = CreaseDisassemble(crease_edge,crease)
     #get modified facets and corresponding creass
-    modified_facet = get_folded_creases_and_facets(creases,crease_edge,flap,sign,stack)
+    modified_facet = get_folded_creases_and_facets(creases,crease_edge,flap,sign,state)
     # print 'modified facet',modified_facet
     ######ccw or cw can be modified here
     ######ccw or cw can be modified here
@@ -809,24 +901,22 @@ def get_next_layer_states(state):
     # print '***********************************************'
     #find foldable flap, the fold direction and unfold crease
     intial_flap, sign, unfold_crease = get_unfold_flap(state)
-    print 'initial flap',intial_flap
-    print 'sign', sign
-    print 'unfold crease',unfold_crease
+    # print 'initial flap',intial_flap
+    # print 'sign', sign
+    # print 'unfold crease',unfold_crease
     for i in range(len(unfold_crease)):
         state_tmp = {}
-        print '*******************************************************'
+        # print '*******************************************************'
         flap = intial_flap[i]
         crease = unfold_crease[i]
 
         #decide base and flap
         base,flap = get_base_and_flap(flap,state)
-        print 'base',base
-        print 'flap',flap
-        if flap == [['13', '14'], ['9', '10']]:
-            print '###############################################################'
+        # print 'base',base
+        # print 'flap',flap
         #reverse stack
         new_stack = reverseStack(base,flap,crease,sign,state)
-        print 'new_stack',new_stack
+        # print 'new_stack',new_stack
         #reverse polygen
         new_polygen = osg.reversePolygen(flap,crease,polygen)
         # print 'new polygen',new_polygen

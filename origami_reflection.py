@@ -171,6 +171,8 @@ def CombineLinearLines(lines):
     "line1 = [[0,0],[1,1]]"
     # sort the lines according to x coordinate
     # print 'lines',lines
+    if len(lines) == 1:
+        return lines
     new_lines = np.array(lines)
     new_lines = np.reshape(new_lines,(-1,2)) #reshape from a 3-d array to 2-d array
     # print 'new line1',new_lines
@@ -181,16 +183,27 @@ def CombineLinearLines(lines):
         new_lines = new_lines[np.argsort(new_lines[:,1])]
     # print 'new line2',new_lines
     #determien if these colinea lines have intersection with each other
-    for i in range(len(lines)-1):
-        line1 = lines[i]
-        line2 = lines[i+1]
-        #has intersection
-        if ifLineIntersect(line1,line2) == 1:
+    index = []
+    for i in range(len(lines)):
+        if i in index:
             continue
-
+        line1 = lines[i]
+        break_sign = 0
+        index.append(i)
+        for j in range(i,len(lines)):
+            if j == i:
+                continue
+            line2 = lines[j]
+            # print 'line2',line2
+            #has intersection
+            if ifLineIntersect(line1,line2) == 1:
+                index.append(j)
+                break_sign = 1
+                break
         # no intersection
-        else:
+        if break_sign == 0:
             return lines
+
     new_lines = new_lines.tolist()
     new_line = [[new_lines[0],new_lines[-1]]]
     return new_line
